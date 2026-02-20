@@ -19,6 +19,7 @@
     "@tunnelhook/db": "workspace:*",
     "@tunnelhook/env": "workspace:*",
     "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

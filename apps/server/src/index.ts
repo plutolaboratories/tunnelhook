@@ -11,6 +11,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
+import { handleSSE, handleWebhook, handleWebSocketUpgrade } from "./webhooks";
+
+export { EndpointDO } from "./endpoint-do";
+
 const app = new Hono();
 
 app.use(logger());
@@ -18,13 +22,22 @@ app.use(
   "/*",
   cors({
     origin: env.CORS_ORIGIN,
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  }),
+  })
 );
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+
+// Webhook receiver — accepts any method
+app.all("/hooks/:slug", handleWebhook);
+
+// SSE stream for real-time event subscription (legacy, kept for compatibility)
+app.get("/hooks/:slug/events", handleSSE);
+
+// WebSocket upgrade for machines and viewers connecting to an endpoint's Durable Object
+app.get("/hooks/:slug/ws", handleWebSocketUpgrade);
 
 export const apiHandler = new OpenAPIHandler(appRouter, {
   plugins: [
@@ -52,7 +65,7 @@ app.use("/*", async (c, next) => {
 
   const rpcResult = await rpcHandler.handle(c.req.raw, {
     prefix: "/rpc",
-    context: context,
+    context,
   });
 
   if (rpcResult.matched) {
@@ -61,7 +74,7 @@ app.use("/*", async (c, next) => {
 
   const apiResult = await apiHandler.handle(c.req.raw, {
     prefix: "/api-reference",
-    context: context,
+    context,
   });
 
   if (apiResult.matched) {

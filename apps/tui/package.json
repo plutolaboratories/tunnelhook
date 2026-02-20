@@ -1,18 +1,51 @@
 {
-  "name": "tui",
-  "private": true,
+  "name": "tunnelhook",
+  "version": "0.1.0",
+  "description": "CLI tool for receiving and forwarding webhooks via TunnelHook",
   "type": "module",
   "module": "src/index.tsx",
+  "bin": {
+    "tunnelhook": "src/index.tsx"
+  },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "dev": "bun run --watch src/index.tsx"
+  },
+  "keywords": [
+    "webhook",
+    "tunnel",
+    "cli",
+    "tui",
+    "hookdeck",
+    "ngrok",
+    "relay",
+    "forward"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/plutolaboratories/tunnelhook.git",
+    "directory": "apps/tui"
+  },
+  "publishConfig": {
+    "provenance": true,
+    "access": "public"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
   },
   "dependencies": {
     "@opentui/core": "^0.1.79",
     "@opentui/react": "^0.1.79",
+    "@orpc/client": "^1.12.2",
     "react": "^19.2.4"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@tunnelhook/api": "workspace:*",
+    "@types/bun": "latest",
+    "@types/react": "^19.2.14"
   },
   "peerDependencies": {
     "typescript": "^5"

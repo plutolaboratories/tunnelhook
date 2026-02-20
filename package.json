@@ -20,7 +20,8 @@
       "alchemy": "^0.82.1",
       "@libsql/client": "0.15.15",
       "libsql": "0.5.22",
-      "@orpc/client": "^1.12.2"
+      "@orpc/client": "^1.12.2",
+      "drizzle-orm": "^0.45.1"
     }
   },
   "type": "module",
