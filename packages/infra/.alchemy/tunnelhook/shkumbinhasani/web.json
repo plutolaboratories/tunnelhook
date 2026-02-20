@@ -1,0 +1,66 @@
+{
+  "kind": "cloudflare::Worker",
+  "id": "web",
+  "fqn": "tunnelhook/shkumbinhasani/web",
+  "seq": 2,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::Worker",
+    "Symbol(alchemy::ResourceID)": "web",
+    "Symbol(alchemy::ResourceFQN)": "tunnelhook/shkumbinhasani/web",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 2,
+    "cwd": "../../apps/web",
+    "bindings": {
+      "VITE_SERVER_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",
+      "ASSETS": {
+        "type": "assets",
+        "path": "../../apps/web/dist"
+      }
+    },
+    "name": "tunnelhook-web-shkumbinhasani",
+    "compatibilityFlags": [],
+    "compatibilityDate": "2026-02-19",
+    "assets": {
+      "html_handling": "auto-trailing-slash",
+      "not_found_handling": "single-page-application",
+      "run_worker_first": false,
+      "directory": "dist"
+    },
+    "entrypoint": ".alchemy/local/worker.js",
+    "dev": {
+      "hasRemote": true
+    },
+    "type": "service",
+    "id": "web",
+    "format": "esm",
+    "createdAt": 1771552309356,
+    "updatedAt": {
+      "@date": "2026-02-20T17:35:40.760Z"
+    },
+    "url": "https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev"
+  },
+  "props": {
+    "cwd": "../../apps/web",
+    "bindings": {
+      "VITE_SERVER_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",
+      "ASSETS": {
+        "type": "assets",
+        "path": "../../apps/web/dist"
+      }
+    },
+    "name": "tunnelhook-web-shkumbinhasani",
+    "compatibilityFlags": [],
+    "compatibilityDate": "2026-02-19",
+    "assets": {
+      "html_handling": "auto-trailing-slash",
+      "not_found_handling": "single-page-application",
+      "run_worker_first": false,
+      "directory": "dist"
+    },
+    "entrypoint": ".alchemy/local/worker.js"
+  }
+}

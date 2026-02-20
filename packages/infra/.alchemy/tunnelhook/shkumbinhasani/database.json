@@ -1,0 +1,44 @@
+{
+  "kind": "cloudflare::D1Database",
+  "id": "database",
+  "fqn": "tunnelhook/shkumbinhasani/database",
+  "seq": 0,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
+    "Symbol(alchemy::ResourceID)": "database",
+    "Symbol(alchemy::ResourceFQN)": "tunnelhook/shkumbinhasani/database",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 0,
+    "type": "d1",
+    "id": "db42f0af-cf09-4f88-a9fc-34677bf6ce01",
+    "name": "tunnelhook-database-shkumbinhasani",
+    "dev": {
+      "id": "tunnelhook-database-shkumbinhasani",
+      "remote": false
+    },
+    "migrationsDir": "../../packages/db/src/migrations",
+    "migrationsTable": "d1_migrations",
+    "jurisdiction": "default"
+  },
+  "props": {
+    "migrationsDir": "../../packages/db/src/migrations",
+    "migrationsFiles": [
+      {
+        "id": "0000_massive_wolfsbane.sql",
+        "hash": "85336c9a410106157ff2f93f866fb8338be7f2bbf27931b20e8b53814553cdc5"
+      },
+      {
+        "id": "0001_regular_silver_samurai.sql",
+        "hash": "3810b5a2e5db661a1e9ddc91d1ff77f5f74180bf097a2f68d6a99e58f66fe98d"
+      }
+    ],
+    "importFiles": [],
+    "dev": {
+      "force": false
+    }
+  }
+}

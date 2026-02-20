@@ -38,6 +38,9 @@ lerna-debug.log*
 
 # Better-T-Stack
 .alchemy
+!packages/infra/.alchemy/
+packages/infra/.alchemy/*
+!packages/infra/.alchemy/tunnelhook/
 
 # Testing
 coverage

@@ -1,0 +1,23 @@
+{
+  "kind": "cloudflare::WorkerSubdomain",
+  "id": "url",
+  "fqn": "tunnelhook/shkumbinhasani/web/url",
+  "seq": 0,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::WorkerSubdomain",
+    "Symbol(alchemy::ResourceID)": "url",
+    "Symbol(alchemy::ResourceFQN)": "tunnelhook/shkumbinhasani/web/url",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 0,
+    "url": "https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev"
+  },
+  "props": {
+    "scriptName": "tunnelhook-web-shkumbinhasani",
+    "retain": false,
+    "dev": false
+  }
+}

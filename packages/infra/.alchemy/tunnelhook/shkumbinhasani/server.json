@@ -1,0 +1,120 @@
+{
+  "kind": "cloudflare::Worker",
+  "id": "server",
+  "fqn": "tunnelhook/shkumbinhasani/server",
+  "seq": 3,
+  "data": {},
+  "status": "updated",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::Worker",
+    "Symbol(alchemy::ResourceID)": "server",
+    "Symbol(alchemy::ResourceFQN)": "tunnelhook/shkumbinhasani/server",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 3,
+    "cwd": "../../apps/server",
+    "entrypoint": "src/index.ts",
+    "compatibility": "node",
+    "bindings": {
+      "DB": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
+        "Symbol(alchemy::ResourceID)": "database",
+        "Symbol(alchemy::ResourceFQN)": "tunnelhook/shkumbinhasani/database",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 0,
+        "type": "d1",
+        "id": "db42f0af-cf09-4f88-a9fc-34677bf6ce01",
+        "name": "tunnelhook-database-shkumbinhasani",
+        "dev": {
+          "id": "tunnelhook-database-shkumbinhasani",
+          "remote": false
+        },
+        "migrationsDir": "../../packages/db/src/migrations",
+        "migrationsTable": "d1_migrations",
+        "jurisdiction": "default"
+      },
+      "CORS_ORIGIN": "https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev",
+      "BETTER_AUTH_SECRET": {
+        "@secret": {
+          "version": "v1",
+          "ciphertext": "GXj7yvPOYkM2OjMr1a/wWsMejcnWtX5d/S6lop5fewA=",
+          "iv": "NDQ6Nl93n2icjarJ",
+          "salt": "vfRVKfUhwTXk5PkxOpBe3Q==",
+          "tag": "QdUxnAAeCu/5t1P1FdguGg=="
+        }
+      },
+      "BETTER_AUTH_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",
+      "ENDPOINT_DO": {
+        "type": "durable_object_namespace",
+        "id": "endpoint-do",
+        "className": "EndpointDO",
+        "scriptName": "tunnelhook-server-shkumbinhasani"
+      }
+    },
+    "dev": {
+      "hasRemote": true
+    },
+    "type": "service",
+    "id": "server",
+    "name": "tunnelhook-server-shkumbinhasani",
+    "compatibilityDate": "2026-02-19",
+    "compatibilityFlags": [
+      "nodejs_compat",
+      "nodejs_compat_populate_process_env"
+    ],
+    "format": "esm",
+    "createdAt": 1771552310042,
+    "updatedAt": {
+      "@date": "2026-02-20T17:35:48.410Z"
+    },
+    "url": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev"
+  },
+  "props": {
+    "cwd": "../../apps/server",
+    "entrypoint": "src/index.ts",
+    "compatibility": "node",
+    "bindings": {
+      "DB": {
+        "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
+        "Symbol(alchemy::ResourceID)": "database",
+        "Symbol(alchemy::ResourceFQN)": "tunnelhook/shkumbinhasani/database",
+        "Symbol(alchemy::ResourceScope)": {
+          "@scope": null
+        },
+        "Symbol(alchemy::ResourceSeq)": 0,
+        "type": "d1",
+        "id": "db42f0af-cf09-4f88-a9fc-34677bf6ce01",
+        "name": "tunnelhook-database-shkumbinhasani",
+        "dev": {
+          "id": "tunnelhook-database-shkumbinhasani",
+          "remote": false
+        },
+        "migrationsDir": "../../packages/db/src/migrations",
+        "migrationsTable": "d1_migrations",
+        "jurisdiction": "default"
+      },
+      "CORS_ORIGIN": "https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev",
+      "BETTER_AUTH_SECRET": {
+        "@secret": {
+          "version": "v1",
+          "ciphertext": "k1vfP69FsPhukSUpQLrnujGLkcTgqSycaeFPWRRQijo=",
+          "iv": "ZViDmz4m+5GsAXdG",
+          "salt": "PySPn0sodS83byInx8Kmcw==",
+          "tag": "lKJqpJg8jmr0l8KbLTeQwA=="
+        }
+      },
+      "BETTER_AUTH_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",
+      "ENDPOINT_DO": {
+        "type": "durable_object_namespace",
+        "id": "endpoint-do",
+        "className": "EndpointDO"
+      }
+    },
+    "dev": {
+      "port": 3002
+    }
+  }
+}

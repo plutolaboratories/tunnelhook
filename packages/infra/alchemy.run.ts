@@ -5,7 +5,6 @@ import {
   Vite,
   Worker,
 } from "alchemy/cloudflare";
-import { CloudflareStateStore } from "alchemy/state";
 import { config } from "dotenv";
 
 config({ path: "./.env" });
@@ -14,9 +13,6 @@ config({ path: "../../apps/server/.env" });
 
 const app = await alchemy("tunnelhook", {
   stage: "shkumbinhasani",
-  stateStore: process.env.CI
-    ? (scope) => new CloudflareStateStore(scope)
-    : undefined,
 });
 
 const db = await D1Database("database", {
