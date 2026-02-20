@@ -1,5 +1,11 @@
 # tunnelhook
 
+## 0.1.3
+
+### Patch Changes
+
+- [`f5c024b`](https://github.com/plutolaboratories/tunnelhook/commit/f5c024bd55816eb0e8128ffc61580f450602405d) Thanks [@shkumbinhasani](https://github.com/shkumbinhasani)! - Add changesets-based release workflow and changelog UI in web dashboard
+
 ## 0.1.2
 
 ### Patch Changes
