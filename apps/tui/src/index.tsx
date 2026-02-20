@@ -165,10 +165,13 @@ function loadSession(): string | null {
 function saveSession(cookies: string): void {
   try {
     if (!existsSync(CONFIG_DIR)) {
-      mkdirSync(CONFIG_DIR, { recursive: true });
+      mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
     }
     const data: SessionData = { cookies, serverUrl: SERVER_URL };
-    writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2), "utf-8");
+    writeFileSync(SESSION_FILE, JSON.stringify(data, null, 2), {
+      encoding: "utf-8",
+      mode: 0o600,
+    });
   } catch {
     // Non-critical — session just won't persist
   }
@@ -381,8 +384,38 @@ async function handleLoginCommand(): Promise<never> {
   console.log(`Server: ${SERVER_URL}\n`);
 
   const email = await ask("Email: ");
-  const password = await ask("Password: ");
   rl.close();
+
+  // Read password with masked input (echo asterisks instead of plaintext)
+  const password = await new Promise<string>((resolve) => {
+    process.stdout.write("Password: ");
+    let pwd = "";
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding("utf8");
+    const onData = (ch: string) => {
+      if (ch === "\r" || ch === "\n") {
+        process.stdin.setRawMode(false);
+        process.stdin.pause();
+        process.stdin.removeListener("data", onData);
+        process.stdout.write("\n");
+        resolve(pwd);
+      } else if (ch === "\u007F" || ch === "\b") {
+        if (pwd.length > 0) {
+          pwd = pwd.slice(0, -1);
+          process.stdout.write("\b \b");
+        }
+      } else if (ch === "\u0003") {
+        // Ctrl+C
+        process.stdout.write("\n");
+        process.exit(0);
+      } else {
+        pwd += ch;
+        process.stdout.write("*");
+      }
+    };
+    process.stdin.on("data", onData);
+  });
 
   console.log("\nSigning in...");
   const result = await signIn(email, password);
@@ -672,11 +705,29 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
       setFocusField((prev: "email" | "password") =>
         prev === "email" ? "password" : "email"
       );
+      return;
     }
     if ((key.name === "enter" || key.name === "return") && !loading) {
       handleSubmit();
+      return;
+    }
+
+    // Manually handle password input since we display masked characters
+    if (focusField === "password") {
+      if (key.name === "backspace") {
+        setPassword((prev) => prev.slice(0, -1));
+      } else if (
+        key.sequence &&
+        key.sequence.length === 1 &&
+        !key.ctrl &&
+        !key.meta
+      ) {
+        setPassword((prev) => prev + key.sequence);
+      }
     }
   });
+
+  const maskedPassword = "*".repeat(password.length);
 
   return (
     <box
@@ -714,16 +765,15 @@ function LoginScreen({ onLogin }: { onLogin: () => void }) {
           />
 
           <text fg={COLORS.text}>Password</text>
-          <input
-            backgroundColor={COLORS.bg}
-            focused={focusField === "password"}
-            focusedBackgroundColor="#1c2128"
-            onChange={setPassword}
-            placeholder="password"
-            textColor={COLORS.text}
-            value={password}
+          <box
+            backgroundColor={focusField === "password" ? "#1c2128" : COLORS.bg}
+            height={1}
             width={40}
-          />
+          >
+            <text fg={password.length > 0 ? COLORS.text : COLORS.textDim}>
+              {password.length > 0 ? maskedPassword : "password"}
+            </text>
+          </box>
 
           {error ? <text fg={COLORS.red}>{error}</text> : null}
           {loading ? (
@@ -1137,6 +1187,10 @@ function MonitorScreen({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [connected, setConnected] = useState(false);
   const [wsStatus, setWsStatus] = useState<string>("connecting...");
+  const [reconnectAttempt, setReconnectAttempt] = useState(0);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   const wsRef = useRef<WebSocket | null>(null);
 
   // Connect to WebSocket as a machine
@@ -1158,6 +1212,7 @@ function MonitorScreen({
     ws.addEventListener("open", () => {
       setConnected(true);
       setWsStatus("connected");
+      setReconnectAttempt(0);
     });
 
     ws.addEventListener("message", (msgEvent) => {
@@ -1273,9 +1328,21 @@ function MonitorScreen({
       }
     });
 
-    ws.addEventListener("close", () => {
+    ws.addEventListener("close", (event) => {
       setConnected(false);
       setWsStatus("disconnected");
+
+      // Don't reconnect if intentionally closed (code 1000) or component unmounting
+      if (event.code === 1000) {
+        return;
+      }
+
+      const delay = Math.min(1000 * 2 ** reconnectAttempt, 30_000);
+      setWsStatus(`reconnecting in ${Math.round(delay / 1000)}s...`);
+
+      reconnectTimeoutRef.current = setTimeout(() => {
+        setReconnectAttempt((prev) => prev + 1);
+      }, delay);
     });
 
     ws.addEventListener("error", () => {
@@ -1283,9 +1350,12 @@ function MonitorScreen({
     });
 
     return () => {
-      ws.close();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      ws.close(1000); // Intentional close — code 1000 prevents reconnect
     };
-  }, [ep.slug, mach.id, mach.name, mach.forwardUrl]);
+  }, [ep.slug, mach.id, mach.name, mach.forwardUrl, reconnectAttempt]);
 
   useKeyboard((key) => {
     if (key.name === "q" || (key.ctrl && key.name === "c")) {

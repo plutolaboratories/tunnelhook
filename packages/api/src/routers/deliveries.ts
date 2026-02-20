@@ -17,14 +17,14 @@ export const deliveryRouter = {
         where: eq(event.id, input.eventId),
       });
       if (!ev) {
-        throw new Error("Event not found");
+        throw new ORPCError("NOT_FOUND", { message: "Event not found" });
       }
 
       const ep = await db.query.endpoint.findFirst({
         where: eq(endpoint.id, ev.endpointId),
       });
       if (!ep || ep.userId !== userId) {
-        throw new Error("Event not found");
+        throw new ORPCError("NOT_FOUND", { message: "Event not found" });
       }
 
       const deliveries = await db
@@ -65,7 +65,7 @@ export const deliveryRouter = {
         where: eq(machine.id, input.machineId),
       });
       if (!m || m.userId !== userId) {
-        throw new Error("Machine not found");
+        throw new ORPCError("NOT_FOUND", { message: "Machine not found" });
       }
 
       const deliveries = await db
@@ -100,7 +100,7 @@ export const deliveryRouter = {
         where: eq(delivery.id, input.id),
       });
       if (!result) {
-        throw new Error("Delivery not found");
+        throw new ORPCError("NOT_FOUND", { message: "Delivery not found" });
       }
 
       // Verify ownership through machine (separate lookup)
@@ -108,7 +108,7 @@ export const deliveryRouter = {
         where: eq(machine.id, result.machineId),
       });
       if (!m || m.userId !== context.session.user.id) {
-        throw new Error("Delivery not found");
+        throw new ORPCError("NOT_FOUND", { message: "Delivery not found" });
       }
 
       return {

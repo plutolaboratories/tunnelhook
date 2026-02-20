@@ -23,7 +23,7 @@ export const machineRouter = {
         where: eq(endpoint.id, input.endpointId),
       });
       if (!ep || ep.userId !== userId) {
-        throw new Error("Endpoint not found");
+        throw new ORPCError("NOT_FOUND", { message: "Endpoint not found" });
       }
 
       const id = crypto.randomUUID();
@@ -55,7 +55,7 @@ export const machineRouter = {
         where: eq(endpoint.id, input.endpointId),
       });
       if (!ep || ep.userId !== userId) {
-        throw new Error("Endpoint not found");
+        throw new ORPCError("NOT_FOUND", { message: "Endpoint not found" });
       }
 
       const machines = await db.query.machine.findMany({
@@ -73,7 +73,7 @@ export const machineRouter = {
         where: eq(machine.id, input.id),
       });
       if (!result || result.userId !== context.session.user.id) {
-        throw new Error("Machine not found");
+        throw new ORPCError("NOT_FOUND", { message: "Machine not found" });
       }
       return result;
     }),
@@ -92,7 +92,7 @@ export const machineRouter = {
         where: eq(machine.id, input.id),
       });
       if (!existing || existing.userId !== context.session.user.id) {
-        throw new Error("Machine not found");
+        throw new ORPCError("NOT_FOUND", { message: "Machine not found" });
       }
 
       const updates: Record<string, unknown> = {};
@@ -118,7 +118,7 @@ export const machineRouter = {
         where: eq(machine.id, input.id),
       });
       if (!existing || existing.userId !== context.session.user.id) {
-        throw new Error("Machine not found");
+        throw new ORPCError("NOT_FOUND", { message: "Machine not found" });
       }
 
       await db.delete(machine).where(eq(machine.id, input.id));
@@ -142,7 +142,7 @@ export const machineRouter = {
         where: eq(delivery.id, input.deliveryId),
       });
       if (!existing) {
-        throw new Error("Delivery not found");
+        throw new ORPCError("NOT_FOUND", { message: "Delivery not found" });
       }
 
       // Verify ownership through machine (separate lookup to avoid drizzle dedup type issues)
@@ -150,7 +150,7 @@ export const machineRouter = {
         where: eq(machine.id, existing.machineId),
       });
       if (!m || m.userId !== context.session.user.id) {
-        throw new Error("Delivery not found");
+        throw new ORPCError("NOT_FOUND", { message: "Delivery not found" });
       }
 
       await db

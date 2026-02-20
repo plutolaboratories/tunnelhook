@@ -126,8 +126,8 @@ export class EndpointDO extends DurableObject {
       userId,
     };
 
-    this.ctx.acceptWebSocket(server);
     server.serializeAttachment(attachment);
+    this.ctx.acceptWebSocket(server);
 
     // Notify all viewers that a new machine came online
     if (role === "machine" && machineId && machineName) {
@@ -256,8 +256,8 @@ export class EndpointDO extends DurableObject {
    */
   webSocketClose(
     ws: WebSocket,
-    code: number,
-    reason: string,
+    _code: number,
+    _reason: string,
     _wasClean: boolean
   ): void {
     const attachment = ws.deserializeAttachment() as WsAttachment | null;
@@ -271,8 +271,6 @@ export class EndpointDO extends DurableObject {
       };
       this.broadcastToViewers(JSON.stringify(statusMsg));
     }
-
-    ws.close(code, reason);
   }
 
   /**
@@ -291,7 +289,11 @@ export class EndpointDO extends DurableObject {
       this.broadcastToViewers(JSON.stringify(statusMsg));
     }
 
-    ws.close(1011, "WebSocket error");
+    try {
+      ws.close(1011, "WebSocket error");
+    } catch {
+      // WebSocket may already be closed
+    }
   }
 
   // ---------------------------------------------------------------------------

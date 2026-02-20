@@ -73,7 +73,7 @@ export const endpointRouter = {
         where: eq(endpoint.id, input.id),
       });
       if (!result || result.userId !== context.session.user.id) {
-        throw new Error("Endpoint not found");
+        throw new ORPCError("NOT_FOUND", { message: "Endpoint not found" });
       }
       return result;
     }),
@@ -94,7 +94,7 @@ export const endpointRouter = {
         where: eq(endpoint.id, input.id),
       });
       if (!existing || existing.userId !== context.session.user.id) {
-        throw new Error("Endpoint not found");
+        throw new ORPCError("NOT_FOUND", { message: "Endpoint not found" });
       }
 
       const updates: Record<string, unknown> = {};
@@ -126,7 +126,7 @@ export const endpointRouter = {
         where: eq(endpoint.id, input.id),
       });
       if (!existing || existing.userId !== context.session.user.id) {
-        throw new Error("Endpoint not found");
+        throw new ORPCError("NOT_FOUND", { message: "Endpoint not found" });
       }
 
       await db.delete(endpoint).where(eq(endpoint.id, input.id));

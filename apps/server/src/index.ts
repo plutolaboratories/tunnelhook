@@ -11,7 +11,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
-import { handleSSE, handleWebhook, handleWebSocketUpgrade } from "./webhooks";
+import { handleWebhook, handleWebSocketUpgrade } from "./webhooks";
 
 export { EndpointDO } from "./endpoint-do";
 
@@ -32,9 +32,6 @@ app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
 // Webhook receiver — accepts any method
 app.all("/hooks/:slug", handleWebhook);
-
-// SSE stream for real-time event subscription (legacy, kept for compatibility)
-app.get("/hooks/:slug/events", handleSSE);
 
 // WebSocket upgrade for machines and viewers connecting to an endpoint's Durable Object
 app.get("/hooks/:slug/ws", handleWebSocketUpgrade);

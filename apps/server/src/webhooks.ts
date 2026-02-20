@@ -7,65 +7,30 @@ import type { Context } from "hono";
 
 import type { EndpointDO } from "./endpoint-do";
 
-interface EventPayload {
-  body: string | null;
-  contentType: string | null;
-  createdAt: Date;
-  endpointId: string;
-  headers: string;
-  id: string;
-  method: string;
-  query: string | null;
-  sourceIp: string | null;
-}
-
-/**
- * In-memory subscriber map for SSE connections.
- * Key: endpoint ID, Value: Set of SSE writer functions.
- */
-const subscribers = new Map<string, Set<(event: EventPayload) => void>>();
-
-/** Notify all SSE subscribers for a given endpoint */
-function notifySubscribers(endpointId: string, payload: EventPayload): void {
-  const subs = subscribers.get(endpointId);
-  if (!subs) {
-    return;
-  }
-  for (const callback of subs) {
-    try {
-      callback(payload);
-    } catch {
-      // Subscriber errored, will be cleaned up on disconnect
-    }
-  }
-}
-
-/** Subscribe to events for an endpoint. Returns an unsubscribe function. */
-export function subscribe(
-  endpointId: string,
-  callback: (event: EventPayload) => void
-): () => void {
-  if (!subscribers.has(endpointId)) {
-    subscribers.set(endpointId, new Set());
-  }
-  const subs = subscribers.get(endpointId);
-  subs?.add(callback);
-
-  return () => {
-    subs?.delete(callback);
-    if (subs?.size === 0) {
-      subscribers.delete(endpointId);
-    }
-  };
-}
-
-/**
- * Helper to get the Durable Object stub for an endpoint.
- */
-function getEndpointDO(endpointId: string): DurableObjectStub<EndpointDO> {
-  const doId = env.ENDPOINT_DO.idFromName(endpointId);
-  return env.ENDPOINT_DO.get(doId) as DurableObjectStub<EndpointDO>;
-}
+const HEADERS_TO_STRIP = new Set([
+  // Sensitive headers that could leak credentials
+  "authorization",
+  "cookie",
+  "set-cookie",
+  // Hop-by-hop headers
+  "connection",
+  "keep-alive",
+  "transfer-encoding",
+  "te",
+  "trailer",
+  "upgrade",
+  "proxy-authorization",
+  "proxy-connection",
+  // Cloudflare-specific internal headers
+  "cf-connecting-ip",
+  "cf-ray",
+  "cf-ipcountry",
+  "cf-visitor",
+  "cf-worker",
+  "x-forwarded-for",
+  "x-forwarded-proto",
+  "x-real-ip",
+]);
 
 interface BroadcastParams {
   body: string | null;
@@ -77,6 +42,14 @@ interface BroadcastParams {
   method: string;
   query: string | null;
   sourceIp: string | null;
+}
+
+/**
+ * Helper to get the Durable Object stub for an endpoint.
+ */
+function getEndpointDO(endpointId: string): DurableObjectStub<EndpointDO> {
+  const doId = env.ENDPOINT_DO.idFromName(endpointId);
+  return env.ENDPOINT_DO.get(doId) as DurableObjectStub<EndpointDO>;
 }
 
 /**
@@ -141,9 +114,87 @@ async function broadcastToMachines(params: BroadcastParams): Promise<void> {
 }
 
 /**
+ * Deferred processing: broadcast event to machines and optionally forward to a static URL.
+ * Runs inside `waitUntil` so it does not block the webhook response.
+ */
+async function processBroadcastAndForward(
+  ep: { id: string; forwardUrl: string | null },
+  eventData: {
+    id: string;
+    method: string;
+    headers: Record<string, string>;
+    body: string | null;
+    query: string | null;
+    sourceIp: string | null;
+    contentType: string | null;
+    createdAt: string;
+  }
+): Promise<void> {
+  try {
+    await broadcastToMachines({
+      endpointId: ep.id,
+      eventId: eventData.id,
+      method: eventData.method,
+      headers: JSON.stringify(eventData.headers),
+      body: eventData.body,
+      query: eventData.query,
+      sourceIp: eventData.sourceIp,
+      contentType: eventData.contentType,
+      createdAt: eventData.createdAt,
+    });
+  } catch (err) {
+    console.error("Failed to broadcast to DO:", err);
+  }
+
+  if (ep.forwardUrl) {
+    const startTime = Date.now();
+    try {
+      const forwardHeaders: Record<string, string> = {};
+      for (const [key, value] of Object.entries(eventData.headers)) {
+        if (!HEADERS_TO_STRIP.has(key.toLowerCase())) {
+          forwardHeaders[key] = value;
+        }
+      }
+
+      const forwardResponse = await fetch(ep.forwardUrl, {
+        method: eventData.method,
+        headers: {
+          ...forwardHeaders,
+          host: new URL(ep.forwardUrl).host,
+          "x-tunnelhook-event-id": eventData.id,
+          "x-tunnelhook-endpoint-id": ep.id,
+        },
+        body:
+          eventData.method !== "GET" && eventData.method !== "HEAD"
+            ? eventData.body
+            : undefined,
+      });
+
+      const duration = Date.now() - startTime;
+      await db
+        .update(event)
+        .set({
+          forwardStatus: forwardResponse.status,
+          forwardDuration: duration,
+        })
+        .where(eq(event.id, eventData.id));
+    } catch (err) {
+      const duration = Date.now() - startTime;
+      await db
+        .update(event)
+        .set({
+          forwardError: err instanceof Error ? err.message : "Unknown error",
+          forwardDuration: duration,
+        })
+        .where(eq(event.id, eventData.id));
+    }
+  }
+}
+
+/**
  * Handle incoming webhook requests at POST/GET/PUT/PATCH/DELETE /hooks/:slug
  * Captures the full request, stores it, broadcasts to connected machines via DO,
- * optionally forwards via static forwardUrl, and notifies SSE subscribers.
+ * and optionally forwards via static forwardUrl.
  */
 export async function handleWebhook(c: Context): Promise<Response> {
   const slug = c.req.param("slug");
@@ -191,78 +242,29 @@ export async function handleWebhook(c: Context): Promise<Response> {
     contentType,
   });
 
-  const payload: EventPayload = {
-    id,
-    endpointId: ep.id,
-    method,
-    headers: JSON.stringify(headers),
-    body,
-    query,
-    sourceIp,
-    contentType,
-    createdAt: now,
-  };
-
-  // Notify SSE subscribers (legacy)
-  notifySubscribers(ep.id, payload);
-
-  // Broadcast to connected machines via Durable Object
-  try {
-    await broadcastToMachines({
-      endpointId: ep.id,
-      eventId: id,
+  // Defer broadcast and forward operations to run after response is sent
+  c.executionCtx.waitUntil(
+    processBroadcastAndForward(ep, {
+      id,
       method,
-      headers: JSON.stringify(headers),
+      headers,
       body,
       query,
       sourceIp,
       contentType,
       createdAt: now.toISOString(),
-    });
-  } catch (err) {
-    console.error("Failed to broadcast to DO:", err);
-  }
+    })
+  );
 
-  // Optionally forward the webhook via static forwardUrl
-  if (ep.forwardUrl) {
-    const startTime = Date.now();
-    try {
-      const forwardResponse = await fetch(ep.forwardUrl, {
-        method,
-        headers: {
-          ...headers,
-          host: new URL(ep.forwardUrl).host,
-          "x-tunnelhook-event-id": id,
-          "x-tunnelhook-endpoint-id": ep.id,
-        },
-        body: method !== "GET" && method !== "HEAD" ? body : undefined,
-      });
-
-      const duration = Date.now() - startTime;
-      await db
-        .update(event)
-        .set({
-          forwardStatus: forwardResponse.status,
-          forwardDuration: duration,
-        })
-        .where(eq(event.id, id));
-    } catch (err) {
-      const duration = Date.now() - startTime;
-      await db
-        .update(event)
-        .set({
-          forwardError: err instanceof Error ? err.message : "Unknown error",
-          forwardDuration: duration,
-        })
-        .where(eq(event.id, id));
-    }
-  }
-
-  return c.json({
-    success: true,
-    eventId: id,
-    endpointId: ep.id,
-  });
+  // Return immediately — processing continues in the background
+  return c.json(
+    {
+      success: true,
+      eventId: id,
+      endpointId: ep.id,
+    },
+    202
+  );
 }
 
 /**
@@ -353,74 +355,6 @@ export async function handleWebSocketUpgrade(c: Context): Promise<Response> {
   return stub.fetch(doUrl.toString(), {
     headers: {
       Upgrade: "websocket",
-    },
-  });
-}
-
-/**
- * SSE endpoint for subscribing to real-time webhook events.
- * GET /hooks/:slug/events
- */
-export async function handleSSE(c: Context): Promise<Response> {
-  const slug = c.req.param("slug");
-
-  const ep = await db.query.endpoint.findFirst({
-    where: eq(endpoint.slug, slug),
-  });
-
-  if (!ep) {
-    return c.json({ error: "Endpoint not found" }, 404);
-  }
-
-  const stream = new ReadableStream({
-    start(controller) {
-      const encoder = new TextEncoder();
-
-      // Send initial connection message
-      controller.enqueue(
-        encoder.encode(
-          `data: ${JSON.stringify({ type: "connected", endpointId: ep.id })}\n\n`
-        )
-      );
-
-      // Keep-alive interval
-      const keepAlive = setInterval(() => {
-        try {
-          controller.enqueue(encoder.encode(": keepalive\n\n"));
-        } catch {
-          clearInterval(keepAlive);
-        }
-      }, 15_000);
-
-      // Subscribe to events for this endpoint
-      const unsubscribe = subscribe(ep.id, (event) => {
-        try {
-          const data = JSON.stringify({ type: "event", event });
-          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
-        } catch {
-          // Stream closed
-        }
-      });
-
-      // Cleanup when stream is cancelled
-      c.req.raw.signal.addEventListener("abort", () => {
-        clearInterval(keepAlive);
-        unsubscribe();
-        try {
-          controller.close();
-        } catch {
-          // Already closed
-        }
-      });
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-      "Access-Control-Allow-Origin": "*",
     },
   });
 }

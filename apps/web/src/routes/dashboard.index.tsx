@@ -131,27 +131,13 @@ function CreateEndpointDialog({ onClose }: { onClose: () => void }) {
 }
 
 function EndpointActions({
-  endpointId,
   slug,
-  endpointName,
+  onDelete,
 }: {
   endpointId: string;
   slug: string;
-  endpointName: string;
+  onDelete: () => void;
 }) {
-  const deleteMutation = useMutation({
-    mutationFn: () => client.endpoints.delete({ id: endpointId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: orpc.endpoints.list.queryOptions().queryKey,
-      });
-      toast.success(`Deleted "${endpointName}"`);
-    },
-    onError: (error) => {
-      toast.error(`Failed to delete: ${error.message}`);
-    },
-  });
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -174,10 +160,7 @@ function EndpointActions({
           Copy webhook URL
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem
-          onSelect={() => deleteMutation.mutate()}
-          variant="destructive"
-        >
+        <DropdownMenuItem onSelect={onDelete} variant="destructive">
           <Trash2 />
           Delete
         </DropdownMenuItem>
@@ -198,6 +181,25 @@ interface Endpoint {
 function DashboardIndex() {
   const endpointsQuery = useQuery(orpc.endpoints.list.queryOptions());
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => client.endpoints.delete({ id }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: orpc.endpoints.list.queryOptions().queryKey,
+      });
+      toast.success(`Deleted "${deleteTarget?.name}"`);
+      setDeleteTarget(null);
+    },
+    onError: (error) => {
+      toast.error(`Failed to delete: ${error.message}`);
+      setDeleteTarget(null);
+    },
+  });
 
   const isLoading = endpointsQuery.isLoading;
   const isEmpty = !isLoading && endpointsQuery.data?.length === 0;
@@ -314,7 +316,12 @@ function DashboardIndex() {
                     <TableCell>
                       <EndpointActions
                         endpointId={endpoint.id}
-                        endpointName={endpoint.name}
+                        onDelete={() =>
+                          setDeleteTarget({
+                            id: endpoint.id,
+                            name: endpoint.name,
+                          })
+                        }
                         slug={endpoint.slug}
                       />
                     </TableCell>
@@ -325,6 +332,41 @@ function DashboardIndex() {
           </Table>
         </div>
       ) : null}
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+          }
+        }}
+        open={deleteTarget !== null}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete endpoint?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. All events and deliveries for this
+              endpoint will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setDeleteTarget(null)} variant="outline">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                if (deleteTarget) {
+                  deleteMutation.mutate(deleteTarget.id);
+                }
+              }}
+              variant="destructive"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

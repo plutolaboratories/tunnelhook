@@ -272,59 +272,6 @@ function useViewerWebSocket(slug: string | undefined, endpointId: string) {
   };
 }
 
-/* ──────────────────────── SSE Fallback Hook ──────────────────────── */
-
-function useSSEEvents(slug: string | undefined) {
-  const [events, setEvents] = useState<WebhookEvent[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [paused, setPaused] = useState(false);
-  const pausedRef = useRef(false);
-
-  useEffect(() => {
-    pausedRef.current = paused;
-  }, [paused]);
-
-  useEffect(() => {
-    if (!slug) {
-      return;
-    }
-
-    const url = `${env.VITE_SERVER_URL}/hooks/${slug}/events`;
-    const eventSource = new EventSource(url);
-
-    eventSource.onopen = () => {
-      setConnected(true);
-    };
-
-    eventSource.onmessage = (msg) => {
-      try {
-        const data = JSON.parse(msg.data);
-        if (data.type === "connected") {
-          setConnected(true);
-        } else if (data.type === "event" && !pausedRef.current) {
-          setEvents((prev) => [data.event as WebhookEvent, ...prev]);
-        }
-      } catch {
-        // Ignore parse errors
-      }
-    };
-
-    eventSource.onerror = () => {
-      setConnected(false);
-    };
-
-    return () => {
-      eventSource.close();
-    };
-  }, [slug]);
-
-  const clearEvents = useCallback(() => {
-    setEvents([]);
-  }, []);
-
-  return { events, connected, paused, setPaused, clearEvents };
-}
-
 /* ──────────────────────── Merge Events ──────────────────────── */
 
 function useMergedEvents(
@@ -1200,6 +1147,7 @@ function EndpointDetail() {
   const navigate = useNavigate();
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const endpointQuery = useQuery(
     orpc.endpoints.get.queryOptions({ input: { id: endpointId } })
@@ -1229,34 +1177,15 @@ function EndpointDetail() {
     clearEvents: clearWsEvents,
   } = useViewerWebSocket(ep?.slug, endpointId);
 
-  const { events: sseEvents, connected: sseConnected } = useSSEEvents(ep?.slug);
-
   const historicalEvents = eventsQuery.data?.items ?? [];
-  const allLiveEvents = useMemo(() => {
-    const seen = new Set<string>();
-    const merged: WebhookEvent[] = [];
-    for (const ev of wsEvents) {
-      if (!seen.has(ev.id)) {
-        seen.add(ev.id);
-        merged.push(ev);
-      }
-    }
-    for (const ev of sseEvents) {
-      if (!seen.has(ev.id)) {
-        seen.add(ev.id);
-        merged.push(ev);
-      }
-    }
-    return merged;
-  }, [wsEvents, sseEvents]);
 
-  const mergedEvents = useMergedEvents(allLiveEvents, historicalEvents);
+  const mergedEvents = useMergedEvents(wsEvents, historicalEvents);
 
   const selectedEvent = selectedEventId
     ? mergedEvents.find((e) => e.id === selectedEventId)
     : null;
 
-  const connected = wsConnected || sseConnected;
+  const connected = wsConnected;
 
   const deleteMutation = useMutation({
     mutationFn: () => client.endpoints.delete({ id: endpointId }),
@@ -1318,7 +1247,7 @@ function EndpointDetail() {
       <EndpointPageHeader
         connected={connected}
         name={ep.name}
-        onDelete={() => deleteMutation.mutate()}
+        onDelete={() => setDeleteConfirmOpen(true)}
         onEdit={() => setEditOpen(true)}
         slug={ep.slug}
         webhookUrl={webhookUrl}
@@ -1368,6 +1297,36 @@ function EndpointDetail() {
           open={editOpen}
         />
       ) : null}
+
+      {/* Delete confirmation dialog */}
+      <Dialog onOpenChange={setDeleteConfirmOpen} open={deleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete endpoint?</DialogTitle>
+            <DialogDescription>
+              This action cannot be undone. All events and deliveries for this
+              endpoint will be permanently deleted.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={() => setDeleteConfirmOpen(false)}
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                deleteMutation.mutate();
+                setDeleteConfirmOpen(false);
+              }}
+              variant="destructive"
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

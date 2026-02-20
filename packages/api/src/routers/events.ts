@@ -21,7 +21,7 @@ export const eventRouter = {
         where: eq(endpoint.id, input.endpointId),
       });
       if (!ep || ep.userId !== context.session.user.id) {
-        throw new Error("Endpoint not found");
+        throw new ORPCError("NOT_FOUND", { message: "Endpoint not found" });
       }
 
       const conditions = [eq(event.endpointId, input.endpointId)];
@@ -54,7 +54,7 @@ export const eventRouter = {
         with: { endpoint: true },
       });
       if (!result || result.endpoint.userId !== context.session.user.id) {
-        throw new Error("Event not found");
+        throw new ORPCError("NOT_FOUND", { message: "Event not found" });
       }
       return result;
     }),
@@ -68,7 +68,7 @@ export const eventRouter = {
         with: { endpoint: true },
       });
       if (!result || result.endpoint.userId !== context.session.user.id) {
-        throw new Error("Event not found");
+        throw new ORPCError("NOT_FOUND", { message: "Event not found" });
       }
 
       await db.delete(event).where(eq(event.id, input.id));
@@ -83,7 +83,7 @@ export const eventRouter = {
         where: eq(endpoint.id, input.endpointId),
       });
       if (!ep || ep.userId !== context.session.user.id) {
-        throw new Error("Endpoint not found");
+        throw new ORPCError("NOT_FOUND", { message: "Endpoint not found" });
       }
 
       await db.delete(event).where(eq(event.endpointId, input.endpointId));
