@@ -1,0 +1,24 @@
+{
+  "name": "@tunnelhook/auth",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./src/index.ts"
+    },
+    "./*": {
+      "default": "./src/*.ts"
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@tunnelhook/db": "workspace:*",
+    "@tunnelhook/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@tunnelhook/config": "workspace:*",
+    "typescript": "catalog:"
+  }
+}

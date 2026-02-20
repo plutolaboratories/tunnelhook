@@ -1,0 +1,32 @@
+{
+  "name": "server",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsdown",
+    "check-types": "tsc -b",
+    "compile": "bun build --compile --minify --sourcemap --bytecode ./src/index.ts --outfile server"
+  },
+  "dependencies": {
+    "@orpc/openapi": "catalog:",
+    "@orpc/server": "catalog:",
+    "@orpc/zod": "catalog:",
+    "@tunnelhook/api": "workspace:*",
+    "@tunnelhook/auth": "workspace:*",
+    "@tunnelhook/db": "workspace:*",
+    "@tunnelhook/env": "workspace:*",
+    "better-auth": "catalog:",
+    "dotenv": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@tunnelhook/config": "workspace:*",
+    "@types/node": "catalog:",
+    "alchemy": "catalog:",
+    "tsdown": "^0.16.5",
+    "typescript": "catalog:",
+    "wrangler": "^4.54.0"
+  }
+}

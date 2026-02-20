@@ -1,0 +1,56 @@
+{
+  "name": "tunnelhook",
+  "private": true,
+  "workspaces": {
+    "packages": [
+      "apps/*",
+      "packages/*"
+    ],
+    "catalog": {
+      "dotenv": "^17.2.2",
+      "zod": "^4.1.13",
+      "typescript": "^5",
+      "@types/node": "^22.13.14",
+      "@cloudflare/workers-types": "^4.20251213.0",
+      "hono": "^4.8.2",
+      "@orpc/server": "^1.12.2",
+      "@orpc/openapi": "^1.12.2",
+      "@orpc/zod": "^1.12.2",
+      "better-auth": "^1.4.18",
+      "alchemy": "^0.82.1",
+      "@libsql/client": "0.15.15",
+      "libsql": "0.5.22",
+      "@orpc/client": "^1.12.2"
+    }
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "dev:native": "turbo -F native dev",
+    "dev:web": "turbo -F web dev",
+    "dev:server": "turbo -F server dev",
+    "db:push": "turbo -F @tunnelhook/db db:push",
+    "db:generate": "turbo -F @tunnelhook/db db:generate",
+    "deploy": "turbo -F @tunnelhook/infra deploy",
+    "destroy": "turbo -F @tunnelhook/infra destroy",
+    "check": "ultracite check",
+    "fix": "ultracite fix"
+  },
+  "dependencies": {
+    "@tunnelhook/env": "workspace:*",
+    "dotenv": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.0",
+    "@cloudflare/workers-types": "catalog:",
+    "@tunnelhook/config": "workspace:*",
+    "@types/node": "catalog:",
+    "turbo": "^2.6.3",
+    "typescript": "catalog:",
+    "ultracite": "7.2.3"
+  },
+  "packageManager": "bun@1.3.1"
+}
