@@ -16,12 +16,12 @@
     "type": "d1",
     "id": "db42f0af-cf09-4f88-a9fc-34677bf6ce01",
     "name": "tunnelhook-database-shkumbinhasani",
+    "migrationsDir": "../../packages/db/src/migrations",
+    "migrationsTable": "d1_migrations",
     "dev": {
       "id": "tunnelhook-database-shkumbinhasani",
       "remote": false
     },
-    "migrationsDir": "../../packages/db/src/migrations",
-    "migrationsTable": "d1_migrations",
     "jurisdiction": "default"
   },
   "props": {
@@ -38,7 +38,7 @@
     ],
     "importFiles": [],
     "dev": {
-      "force": false
+      "force": true
     }
   }
 }

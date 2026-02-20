@@ -2,7 +2,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Copy,
-  ExternalLink,
   Loader2,
   MoreHorizontal,
   Plus,
@@ -14,13 +13,6 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +31,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
 export const Route = createFileRoute("/dashboard/")({
@@ -72,10 +72,10 @@ function CreateEndpointDialog({ onClose }: { onClose: () => void }) {
   return (
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Create Endpoint</DialogTitle>
+        <DialogTitle>Create hook</DialogTitle>
         <DialogDescription>
-          Create a new webhook endpoint. You'll get a unique URL to receive
-          webhooks.
+          Create a new webhook endpoint. A unique URL will be generated
+          automatically.
         </DialogDescription>
       </DialogHeader>
       <form
@@ -117,7 +117,6 @@ function CreateEndpointDialog({ onClose }: { onClose: () => void }) {
         <DialogFooter>
           <Button
             disabled={!name.trim() || createMutation.isPending}
-            size="sm"
             type="submit"
           >
             {createMutation.isPending ? (
@@ -168,11 +167,11 @@ function EndpointActions({
           onSelect={() => {
             const url = `${window.location.protocol}//${window.location.host}/hooks/${slug}`;
             navigator.clipboard.writeText(url);
-            toast.success("Webhook URL copied to clipboard");
+            toast.success("Copied webhook URL");
           }}
         >
           <Copy />
-          Copy Webhook URL
+          Copy webhook URL
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
@@ -187,37 +186,6 @@ function EndpointActions({
   );
 }
 
-function EmptyState({
-  createOpen,
-  setCreateOpen,
-}: {
-  createOpen: boolean;
-  setCreateOpen: (open: boolean) => void;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex flex-col items-center justify-center py-16">
-        <Webhook className="mb-3 size-8 text-muted-foreground" />
-        <p className="mb-1 font-medium text-sm">No endpoints yet</p>
-        <p className="mb-4 text-muted-foreground text-xs">
-          Create your first webhook endpoint to start receiving events.
-        </p>
-        <Dialog onOpenChange={setCreateOpen} open={createOpen}>
-          <DialogTrigger
-            render={
-              <Button size="sm">
-                <Plus data-icon="inline-start" />
-                Create Endpoint
-              </Button>
-            }
-          />
-          <CreateEndpointDialog onClose={() => setCreateOpen(false)} />
-        </Dialog>
-      </CardContent>
-    </Card>
-  );
-}
-
 interface Endpoint {
   description: string | null;
   enabled: boolean;
@@ -225,58 +193,6 @@ interface Endpoint {
   id: string;
   name: string;
   slug: string;
-}
-
-function EndpointCard({ ep }: { ep: Endpoint }) {
-  return (
-    <Card className="transition-colors hover:bg-muted/50" size="sm">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Link
-            className="contents"
-            params={{ endpointId: ep.id }}
-            to="/dashboard/endpoints/$endpointId"
-          >
-            <CardTitle className="hover:underline">{ep.name}</CardTitle>
-          </Link>
-          <Badge
-            className="text-[10px]"
-            variant={ep.enabled ? "default" : "secondary"}
-          >
-            {ep.enabled ? "Active" : "Disabled"}
-          </Badge>
-        </div>
-        <CardDescription>
-          {ep.description || `Slug: ${ep.slug}`}
-        </CardDescription>
-        <div className="col-start-2 row-span-2 row-start-1 self-start justify-self-end">
-          <EndpointActions
-            endpointId={ep.id}
-            endpointName={ep.name}
-            slug={ep.slug}
-          />
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground text-xs">URL:</span>
-            <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px]">
-              /hooks/{ep.slug}
-            </code>
-          </div>
-          {ep.forwardUrl ? (
-            <div className="flex items-center gap-1.5">
-              <ExternalLink className="size-3 text-muted-foreground" />
-              <span className="truncate text-[11px] text-muted-foreground">
-                {ep.forwardUrl}
-              </span>
-            </div>
-          ) : null}
-        </div>
-      </CardContent>
-    </Card>
-  );
 }
 
 function DashboardIndex() {
@@ -288,20 +204,23 @@ function DashboardIndex() {
   const hasEndpoints = !isLoading && (endpointsQuery.data?.length ?? 0) > 0;
 
   return (
-    <div className="mx-auto w-full max-w-5xl p-4">
+    <div className="flex flex-1 flex-col overflow-hidden p-6">
+      {/* Page header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="font-medium text-lg">Endpoints</h1>
-          <p className="text-muted-foreground text-xs">
+          <h1 className="font-semibold text-[22px] leading-[28px] tracking-tight">
+            Hooks
+          </h1>
+          <p className="mt-1 text-[13px] text-muted-foreground">
             Manage your webhook endpoints and view incoming events.
           </p>
         </div>
         <Dialog onOpenChange={setCreateOpen} open={createOpen}>
           <DialogTrigger
             render={
-              <Button size="sm">
+              <Button>
                 <Plus data-icon="inline-start" />
-                New Endpoint
+                New hook
               </Button>
             }
           />
@@ -309,21 +228,101 @@ function DashboardIndex() {
         </Dialog>
       </div>
 
+      {/* Loading */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex flex-1 items-center justify-center">
           <Loader2 className="size-5 animate-spin text-muted-foreground" />
         </div>
       ) : null}
 
+      {/* Empty state */}
       {isEmpty ? (
-        <EmptyState createOpen={createOpen} setCreateOpen={setCreateOpen} />
+        <div className="flex flex-1 flex-col items-center justify-center gap-3">
+          <Webhook className="size-8 text-muted-foreground" />
+          <p className="text-[13px] text-muted-foreground">
+            No hooks yet. Create one to start receiving webhooks.
+          </p>
+          <Dialog onOpenChange={setCreateOpen} open={createOpen}>
+            <DialogTrigger
+              render={
+                <Button>
+                  <Plus data-icon="inline-start" />
+                  Create hook
+                </Button>
+              }
+            />
+            <CreateEndpointDialog onClose={() => setCreateOpen(false)} />
+          </Dialog>
+        </div>
       ) : null}
 
+      {/* Data table */}
       {hasEndpoints ? (
-        <div className="grid gap-2">
-          {endpointsQuery.data?.map((ep) => (
-            <EndpointCard ep={ep as Endpoint} key={ep.id} />
-          ))}
+        <div className="flex-1 overflow-auto rounded-[14px] bg-card shadow-[0_1px_2px_rgba(0,0,0,.06)] ring-1 ring-border">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="sticky top-0 bg-card">Name</TableHead>
+                <TableHead className="sticky top-0 bg-card">Slug</TableHead>
+                <TableHead className="sticky top-0 bg-card">Status</TableHead>
+                <TableHead className="sticky top-0 bg-card">
+                  Forward URL
+                </TableHead>
+                <TableHead className="sticky top-0 w-10 bg-card" />
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {endpointsQuery.data?.map((ep) => {
+                const endpoint = ep as Endpoint;
+                return (
+                  <TableRow
+                    className="group h-[44px] cursor-pointer"
+                    key={endpoint.id}
+                  >
+                    <TableCell>
+                      <Link
+                        className="font-medium text-[13px] hover:text-cyan"
+                        params={{ endpointId: endpoint.id }}
+                        to="/dashboard/endpoints/$endpointId"
+                      >
+                        {endpoint.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>
+                      <code className="rounded-[6px] bg-muted px-1.5 py-0.5 font-mono text-muted-foreground text-xs">
+                        /hooks/{endpoint.slug}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={endpoint.enabled ? "success" : "secondary"}
+                      >
+                        {endpoint.enabled ? "Active" : "Disabled"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {endpoint.forwardUrl ? (
+                        <span className="truncate font-mono text-muted-foreground text-xs">
+                          {endpoint.forwardUrl}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50 text-xs">
+                          --
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <EndpointActions
+                        endpointId={endpoint.id}
+                        endpointName={endpoint.name}
+                        slug={endpoint.slug}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       ) : null}
     </div>

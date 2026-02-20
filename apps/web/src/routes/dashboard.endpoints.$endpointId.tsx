@@ -12,15 +12,13 @@ import {
   Plus,
   Settings,
   Trash2,
-  Wifi,
-  WifiOff,
+  X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -32,13 +30,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { client, orpc, queryClient } from "@/utils/orpc";
 
 export const Route = createFileRoute("/dashboard/endpoints/$endpointId")({
@@ -77,7 +83,6 @@ interface ConnectedMachine {
   online: boolean;
 }
 
-/** Message types from the DO (must match endpoint-do.ts ServerMessage) */
 type ServerMessage =
   | {
       body: string | null;
@@ -111,22 +116,16 @@ type ServerMessage =
     };
 
 const METHOD_COLORS: Record<string, string> = {
-  DELETE: "text-red-400",
-  GET: "text-green-400",
-  HEAD: "text-purple-400",
-  OPTIONS: "text-gray-400",
-  PATCH: "text-orange-400",
-  POST: "text-blue-400",
-  PUT: "text-yellow-400",
+  DELETE: "text-red-500",
+  GET: "text-emerald-600",
+  HEAD: "text-purple-500",
+  OPTIONS: "text-muted-foreground",
+  PATCH: "text-orange-500",
+  POST: "text-blue-500",
+  PUT: "text-amber-500",
 };
 
 const HTTP_PROTOCOL_RE = /^http/;
-
-const STATUS_COLORS: Record<string, string> = {
-  delivered: "text-green-400",
-  failed: "text-red-400",
-  pending: "text-yellow-400",
-};
 
 /* ──────────────────────── WebSocket Viewer Hook ──────────────────────── */
 
@@ -197,7 +196,6 @@ function useViewerWebSocket(slug: string | undefined, endpointId: string) {
           setDeliveries((prev) => {
             const next = new Map(prev);
             const existing = next.get(msg.eventId) ?? [];
-            // Replace if same deliveryId, otherwise append
             const idx = existing.findIndex(
               (d) => d.deliveryId === msg.deliveryId
             );
@@ -237,7 +235,6 @@ function useViewerWebSocket(slug: string | undefined, endpointId: string) {
     ws.onclose = () => {
       setConnected(false);
       wsRef.current = null;
-      // Reconnect after 3s
       reconnectTimeoutRef.current = setTimeout(() => {
         connect();
       }, 3000);
@@ -374,108 +371,73 @@ function useMergedEvents(
 
 /* ──────────────────────── Sub-components ──────────────────────── */
 
-function EndpointHeader({
+function EndpointPageHeader({
   name,
-  description,
-  enabled,
-  wsConnected,
+  slug,
+  webhookUrl,
+  connected,
   onEdit,
   onDelete,
 }: {
   name: string;
-  description: string | null;
-  enabled: boolean;
-  wsConnected: boolean;
+  slug: string;
+  webhookUrl: string;
+  connected: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between">
+    <div className="flex items-center justify-between border-border border-b px-6 py-4">
       <div className="flex items-center gap-3">
         <Link to="/dashboard">
           <Button size="icon-sm" variant="ghost">
             <ArrowLeft />
           </Button>
         </Link>
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="font-medium text-lg">{name}</h1>
-            <Badge
-              className="text-[10px]"
-              variant={enabled ? "default" : "secondary"}
-            >
-              {enabled ? "Active" : "Disabled"}
-            </Badge>
-            <ConnectionIndicator connected={wsConnected} label="WS" />
+        <div className="flex items-center gap-3">
+          <h1 className="font-semibold text-[18px] tracking-tight">{name}</h1>
+          <div className="flex items-center gap-1.5">
+            <Circle
+              className={cn(
+                "size-2",
+                connected
+                  ? "fill-cyan text-cyan"
+                  : "fill-muted-foreground text-muted-foreground"
+              )}
+            />
+            <span className="text-[11px] text-muted-foreground">
+              {connected ? "Connected" : "Disconnected"}
+            </span>
           </div>
-          {description ? (
-            <p className="text-muted-foreground text-xs">{description}</p>
-          ) : null}
         </div>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
+        {/* Webhook URL pill */}
+        <button
+          className="flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 font-mono text-muted-foreground text-xs transition-colors duration-120 hover:bg-muted/80"
+          onClick={() => {
+            navigator.clipboard.writeText(webhookUrl);
+            toast.success("Copied webhook URL");
+          }}
+          type="button"
+        >
+          /hooks/{slug}
+          <Copy className="size-3" />
+        </button>
         <Button onClick={onEdit} size="icon-sm" variant="ghost">
           <Settings />
-          <span className="sr-only">Settings</span>
         </Button>
         <Button onClick={onDelete} size="icon-sm" variant="ghost">
           <Trash2 />
-          <span className="sr-only">Delete</span>
         </Button>
       </div>
     </div>
   );
 }
 
-function ConnectionIndicator({
-  connected,
-  label,
-}: {
-  connected: boolean;
-  label?: string;
-}) {
-  const colorClass = connected
-    ? "fill-green-400 text-green-400"
-    : "fill-muted-foreground text-muted-foreground";
-  return (
-    <div className="flex items-center gap-1">
-      <Circle className={`size-2 ${colorClass}`} />
-      <span className="text-[10px] text-muted-foreground">
-        {label ? `${label}: ` : ""}
-        {connected ? "Connected" : "Disconnected"}
-      </span>
-    </div>
-  );
-}
+/* ──── Route Lines (Machine → Target) ──── */
 
-function WebhookUrlCard({ webhookUrl }: { webhookUrl: string }) {
-  return (
-    <Card className="mb-4" size="sm">
-      <CardContent className="flex items-center gap-2">
-        <span className="shrink-0 text-muted-foreground text-xs">
-          Webhook URL:
-        </span>
-        <code className="flex-1 truncate rounded bg-muted px-2 py-1 font-mono text-[11px]">
-          {webhookUrl}
-        </code>
-        <Button
-          onClick={() => {
-            navigator.clipboard.writeText(webhookUrl);
-            toast.success("URL copied to clipboard");
-          }}
-          size="icon-xs"
-          variant="ghost"
-        >
-          <Copy />
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-/* ──── Machines Panel ──── */
-
-function MachinesPanel({
+function RouteLines({
   registeredMachines,
   connectedMachines,
   endpointId,
@@ -494,70 +456,16 @@ function MachinesPanel({
 }) {
   const [registerOpen, setRegisterOpen] = useState(false);
 
-  // Merge registered machine data with live online/offline status
   const machineList = useMemo(() => {
     return registeredMachines.map((m) => {
       const live = connectedMachines.get(m.id);
-      return {
-        ...m,
-        online: live?.online ?? false,
-      };
+      return { ...m, online: live?.online ?? false };
     });
   }, [registeredMachines, connectedMachines]);
 
-  const onlineCount = machineList.filter((m) => m.online).length;
-
-  return (
-    <Card className="mb-4" size="sm">
-      <CardHeader className="pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2 text-sm">
-            <Monitor className="size-3.5" />
-            Machines
-            <Badge className="text-[10px]" variant="outline">
-              {onlineCount}/{machineList.length} online
-            </Badge>
-          </CardTitle>
-          <Button
-            onClick={() => setRegisterOpen(true)}
-            size="icon-xs"
-            variant="ghost"
-          >
-            <Plus />
-            <span className="sr-only">Register machine</span>
-          </Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <MachineListContent isLoading={isLoading} machineList={machineList} />
-      </CardContent>
-      {registerOpen ? (
-        <RegisterMachineDialog
-          endpointId={endpointId}
-          onOpenChange={setRegisterOpen}
-          open={registerOpen}
-        />
-      ) : null}
-    </Card>
-  );
-}
-
-function MachineListContent({
-  isLoading,
-  machineList,
-}: {
-  isLoading: boolean;
-  machineList: Array<{
-    id: string;
-    name: string;
-    forwardUrl: string;
-    online: boolean;
-    lastSeenAt: Date | string | null;
-  }>;
-}) {
   if (isLoading) {
     return (
-      <div className="flex justify-center py-3">
+      <div className="flex items-center justify-center border-border border-b px-6 py-4">
         <Loader2 className="size-4 animate-spin text-muted-foreground" />
       </div>
     );
@@ -565,49 +473,76 @@ function MachineListContent({
 
   if (machineList.length === 0) {
     return (
-      <p className="py-2 text-center text-muted-foreground text-xs">
-        No machines registered. Connect a machine via the TUI to start receiving
-        webhooks.
-      </p>
+      <div className="flex items-center justify-between border-border border-b px-6 py-3">
+        <p className="text-[13px] text-muted-foreground">
+          No machines connected. Use the CLI to start receiving webhooks.
+        </p>
+        <Button
+          onClick={() => setRegisterOpen(true)}
+          size="sm"
+          variant="outline"
+        >
+          <Plus className="size-3.5" data-icon="inline-start" />
+          Add machine
+        </Button>
+        {registerOpen ? (
+          <RegisterMachineDialog
+            endpointId={endpointId}
+            onOpenChange={setRegisterOpen}
+            open={registerOpen}
+          />
+        ) : null}
+      </div>
     );
   }
 
   return (
-    <div className="grid gap-1">
-      {machineList.map((m) => (
-        <MachineRow key={m.id} machine={m} />
-      ))}
-    </div>
-  );
-}
-
-function MachineRow({
-  machine,
-}: {
-  machine: {
-    id: string;
-    name: string;
-    forwardUrl: string;
-    online: boolean;
-    lastSeenAt: Date | string | null;
-  };
-}) {
-  return (
-    <div className="flex items-center gap-2 rounded px-2 py-1 text-xs hover:bg-muted/50">
-      <Tooltip>
-        <TooltipTrigger>
-          {machine.online ? (
-            <Wifi className="size-3 text-green-400" />
-          ) : (
-            <WifiOff className="size-3 text-muted-foreground" />
-          )}
-        </TooltipTrigger>
-        <TooltipContent>{machine.online ? "Online" : "Offline"}</TooltipContent>
-      </Tooltip>
-      <span className="font-medium">{machine.name}</span>
-      <span className="flex-1 truncate font-mono text-[10px] text-muted-foreground">
-        {machine.forwardUrl}
-      </span>
+    <div className="flex items-center gap-3 border-border border-b px-6 py-3">
+      <Monitor className="size-4 text-muted-foreground" />
+      <div className="flex flex-wrap items-center gap-2">
+        {machineList.map((m) => (
+          <div className="flex items-center gap-2" key={m.id}>
+            {/* Machine chip */}
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 font-medium text-xs">
+              <Circle
+                className={cn(
+                  "size-[6px]",
+                  m.online
+                    ? "fill-cyan text-cyan"
+                    : "fill-muted-foreground text-muted-foreground"
+                )}
+              />
+              {m.name}
+            </span>
+            {/* Dotted line */}
+            <span className="inline-block w-8 border-border border-t border-dashed" />
+            {/* Target pill */}
+            <Tooltip>
+              <TooltipTrigger>
+                <span className="inline-flex max-w-[200px] items-center gap-1 truncate rounded-full bg-muted px-2.5 py-1 font-mono text-[11px] text-muted-foreground">
+                  {m.forwardUrl}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>{m.forwardUrl}</TooltipContent>
+            </Tooltip>
+          </div>
+        ))}
+      </div>
+      <Button
+        className="ml-auto"
+        onClick={() => setRegisterOpen(true)}
+        size="icon-xs"
+        variant="ghost"
+      >
+        <Plus />
+      </Button>
+      {registerOpen ? (
+        <RegisterMachineDialog
+          endpointId={endpointId}
+          onOpenChange={setRegisterOpen}
+          open={registerOpen}
+        />
+      ) : null}
     </div>
   );
 }
@@ -649,10 +584,9 @@ function RegisterMachineDialog({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Register Machine</DialogTitle>
+          <DialogTitle>Register machine</DialogTitle>
           <DialogDescription>
-            Register a new machine that can receive and forward webhooks from
-            this endpoint.
+            Add a machine to forward webhooks from this endpoint.
           </DialogDescription>
         </DialogHeader>
         <form
@@ -689,7 +623,6 @@ function RegisterMachineDialog({
                 !(name.trim() && forwardUrl.trim()) ||
                 registerMutation.isPending
               }
-              size="sm"
               type="submit"
             >
               {registerMutation.isPending ? (
@@ -704,9 +637,9 @@ function RegisterMachineDialog({
   );
 }
 
-/* ──── Events List ──── */
+/* ──── Events Table ──── */
 
-function EventsList({
+function EventsTable({
   events,
   selectedEventId,
   onSelectEvent,
@@ -717,113 +650,145 @@ function EventsList({
 }: {
   events: WebhookEvent[];
   selectedEventId: string | null;
-  onSelectEvent: (id: string) => void;
+  onSelectEvent: (id: string | null) => void;
   paused: boolean;
   onTogglePause: () => void;
   onClearEvents: () => void;
   deliveries: Map<string, DeliveryResult[]>;
 }) {
   return (
-    <div className="flex w-80 shrink-0 flex-col">
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="font-medium text-sm">Events ({events.length})</h2>
+    <div className="flex flex-1 flex-col overflow-hidden">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-6 py-3">
+        <h2 className="font-semibold text-[14px]">
+          Events
+          <span className="ml-1.5 font-normal text-muted-foreground">
+            {events.length}
+          </span>
+        </h2>
         <div className="flex items-center gap-1">
-          <Button
-            onClick={onTogglePause}
-            size="icon-xs"
-            title={paused ? "Resume live updates" : "Pause live updates"}
-            variant="ghost"
-          >
-            {paused ? <Play /> : <Pause />}
-          </Button>
-          <Button
-            onClick={onClearEvents}
-            size="icon-xs"
-            title="Clear all events"
-            variant="ghost"
-          >
-            <Trash2 />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button onClick={onTogglePause} size="icon-xs" variant="ghost">
+                {paused ? <Play /> : <Pause />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              {paused ? "Resume live updates" : "Pause live updates"}
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger>
+              <Button onClick={onClearEvents} size="icon-xs" variant="ghost">
+                <Trash2 />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Clear events</TooltipContent>
+          </Tooltip>
         </div>
       </div>
-      <ScrollArea className="flex-1">
+
+      {/* Table */}
+      <div className="flex-1 overflow-auto px-6">
         {events.length === 0 ? (
-          <EventsEmptyState />
-        ) : (
-          <div className="grid gap-1">
-            {events.map((ev) => (
-              <EventRow
-                deliveryCount={deliveries.get(ev.id)?.length ?? 0}
-                event={ev}
-                isSelected={selectedEventId === ev.id}
-                key={ev.id}
-                onSelect={onSelectEvent}
-              />
-            ))}
+          <div className="flex flex-1 flex-col items-center justify-center py-16 text-center">
+            <p className="text-[13px] text-muted-foreground">
+              No events yet. Send a request to your webhook URL.
+            </p>
           </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[70px]">Method</TableHead>
+                <TableHead>ID</TableHead>
+                <TableHead>Deliveries</TableHead>
+                <TableHead className="text-right">Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {events.map((ev) => {
+                const evDeliveries = deliveries.get(ev.id) ?? [];
+                const isSelected = selectedEventId === ev.id;
+                return (
+                  <TableRow
+                    className={cn(
+                      "h-[44px] cursor-pointer transition-colors duration-120",
+                      isSelected && "bg-accent"
+                    )}
+                    key={ev.id}
+                    onClick={() => onSelectEvent(isSelected ? null : ev.id)}
+                  >
+                    <TableCell>
+                      <span
+                        className={cn(
+                          "font-mono font-semibold text-xs",
+                          METHOD_COLORS[ev.method] ?? "text-foreground"
+                        )}
+                      >
+                        {ev.method}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="font-mono text-muted-foreground text-xs">
+                        {ev.id.slice(0, 8)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {evDeliveries.length > 0 ? (
+                        <div className="flex items-center gap-1">
+                          {evDeliveries.map((d) => (
+                            <DeliveryStatusDot
+                              key={d.deliveryId}
+                              status={d.status}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground/50 text-xs">
+                          --
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <span className="text-muted-foreground text-xs">
+                        {formatTime(ev.createdAt)}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         )}
-      </ScrollArea>
+      </div>
     </div>
   );
 }
 
-function EventsEmptyState() {
+function DeliveryStatusDot({ status }: { status: string }) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground text-xs">
-      <p>No events yet.</p>
-      <p className="mt-1">Send a request to your webhook URL to see it here.</p>
-    </div>
+    <span
+      className={cn(
+        "inline-block size-2 rounded-full",
+        status === "delivered" && "bg-success",
+        status === "failed" && "bg-destructive",
+        status === "pending" && "bg-warning"
+      )}
+    />
   );
 }
 
-function EventRow({
-  event,
-  isSelected,
-  onSelect,
-  deliveryCount,
-}: {
-  event: WebhookEvent;
-  isSelected: boolean;
-  onSelect: (id: string) => void;
-  deliveryCount: number;
-}) {
-  const selectedClass = isSelected ? "bg-muted" : "hover:bg-muted/50";
-  return (
-    <button
-      className={`flex items-center gap-2 rounded px-2 py-1.5 text-left text-xs transition-colors ${selectedClass}`}
-      onClick={() => onSelect(event.id)}
-      type="button"
-    >
-      <span
-        className={`font-medium font-mono text-[11px] ${METHOD_COLORS[event.method] ?? "text-foreground"}`}
-      >
-        {event.method}
-      </span>
-      <span className="flex-1 truncate font-mono text-[10px] text-muted-foreground">
-        {event.id.slice(0, 8)}
-      </span>
-      {deliveryCount > 0 ? (
-        <Badge className="px-1 py-0 text-[9px]" variant="outline">
-          {deliveryCount}
-        </Badge>
-      ) : null}
-      <span className="text-[10px] text-muted-foreground">
-        {formatTime(event.createdAt)}
-      </span>
-    </button>
-  );
-}
+/* ──── Inspector Drawer ──── */
 
-/* ──── Event Detail ──── */
-
-function EventDetail({
+function InspectorDrawer({
   event,
   liveDeliveries,
-  eventId,
+  onClose,
 }: {
   event: WebhookEvent;
   liveDeliveries: DeliveryResult[];
-  eventId: string;
+  onClose: () => void;
 }) {
   let parsedHeaders: Record<string, string> = {};
   try {
@@ -838,30 +803,24 @@ function EventDetail({
       formattedBody = JSON.stringify(JSON.parse(formattedBody), null, 2);
     }
   } catch {
-    // Not JSON, keep as-is
+    // Not JSON
   }
 
-  // Fetch historical deliveries for this event
   const deliveriesQuery = useQuery(
     orpc.deliveries.listByEvent.queryOptions({
-      input: { eventId },
+      input: { eventId: event.id },
     })
   );
 
-  // Merge live deliveries with historical ones
   const mergedDeliveries = useMemo(() => {
     const seen = new Set<string>();
     const result: DeliveryResult[] = [];
-
-    // Live deliveries take precedence (most recent data)
     for (const d of liveDeliveries) {
       if (!seen.has(d.deliveryId)) {
         seen.add(d.deliveryId);
         result.push(d);
       }
     }
-
-    // Add historical deliveries not yet seen
     for (const d of deliveriesQuery.data ?? []) {
       if (!seen.has(d.id)) {
         seen.add(d.id);
@@ -878,119 +837,149 @@ function EventDetail({
         });
       }
     }
-
     return result;
   }, [liveDeliveries, deliveriesQuery.data]);
 
   return (
-    <div className="flex flex-col gap-3">
-      <EventDetailHeader event={event} />
-      <EventMetadata event={event} />
-      <Tabs defaultValue="body">
-        <TabsList variant="line">
-          <TabsTrigger value="body">Body</TabsTrigger>
-          <TabsTrigger value="headers">
-            Headers ({Object.keys(parsedHeaders).length})
-          </TabsTrigger>
-          <TabsTrigger value="deliveries">
-            Deliveries ({mergedDeliveries.length})
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="body">
-          <Card className="mt-2" size="sm">
-            <CardContent>
-              {formattedBody ? (
-                <pre className="overflow-x-auto whitespace-pre-wrap break-all font-mono text-[11px]">
-                  {formattedBody}
-                </pre>
-              ) : (
-                <p className="text-muted-foreground text-xs italic">No body</p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="headers">
-          <Card className="mt-2" size="sm">
-            <CardContent>
-              <div className="grid gap-1">
-                {Object.entries(parsedHeaders).map(([key, value]) => (
-                  <div className="flex gap-2 font-mono text-[11px]" key={key}>
-                    <span className="shrink-0 text-muted-foreground">
-                      {key}:
-                    </span>
-                    <span className="break-all">{value}</span>
-                  </div>
-                ))}
+    <div className="flex w-[560px] shrink-0 flex-col border-border border-l bg-card shadow-[-12px_0_30px_rgba(0,0,0,.06)]">
+      {/* Drawer header */}
+      <div className="flex items-center justify-between border-border border-b px-5 py-3">
+        <div className="flex items-center gap-3">
+          <Badge
+            className={cn(
+              "font-mono",
+              METHOD_COLORS[event.method] ?? "text-foreground"
+            )}
+            variant="outline"
+          >
+            {event.method}
+          </Badge>
+          <span className="font-mono text-muted-foreground text-xs">
+            {event.id.slice(0, 12)}
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            onClick={() => {
+              navigator.clipboard.writeText(event.id);
+              toast.success("Copied event ID");
+            }}
+            size="icon-xs"
+            variant="ghost"
+          >
+            <Copy />
+          </Button>
+          <Button onClick={onClose} size="icon-xs" variant="ghost">
+            <X />
+          </Button>
+        </div>
+      </div>
+
+      {/* Drawer content */}
+      <ScrollArea className="flex-1">
+        <div className="p-5">
+          {/* Summary */}
+          <div className="mb-4 grid grid-cols-2 gap-3 text-[13px]">
+            {event.contentType ? (
+              <div>
+                <span className="text-muted-foreground">Content-Type</span>
+                <p className="mt-0.5 font-mono text-xs">{event.contentType}</p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        <TabsContent value="deliveries">
-          <DeliveriesTab
-            deliveries={mergedDeliveries}
-            isLoading={deliveriesQuery.isLoading}
-          />
-        </TabsContent>
-      </Tabs>
+            ) : null}
+            {event.sourceIp ? (
+              <div>
+                <span className="text-muted-foreground">Source IP</span>
+                <p className="mt-0.5 font-mono text-xs">{event.sourceIp}</p>
+              </div>
+            ) : null}
+            <div>
+              <span className="text-muted-foreground">Received</span>
+              <p className="mt-0.5 text-xs">
+                {formatTimeFull(event.createdAt)}
+              </p>
+            </div>
+            {event.query ? (
+              <div>
+                <span className="text-muted-foreground">Query</span>
+                <p className="mt-0.5 font-mono text-xs">{event.query}</p>
+              </div>
+            ) : null}
+          </div>
+
+          {/* Tabs */}
+          <Tabs defaultValue="body">
+            <TabsList variant="line">
+              <TabsTrigger value="body">Body</TabsTrigger>
+              <TabsTrigger value="headers">
+                Headers ({Object.keys(parsedHeaders).length})
+              </TabsTrigger>
+              <TabsTrigger value="deliveries">
+                Deliveries ({mergedDeliveries.length})
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="body">
+              <div className="mt-3">
+                {formattedBody ? (
+                  <pre className="overflow-x-auto rounded-[10px] bg-muted p-3 font-mono text-xs leading-relaxed">
+                    {formattedBody}
+                  </pre>
+                ) : (
+                  <p className="py-4 text-[13px] text-muted-foreground italic">
+                    No body
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="headers">
+              <div className="mt-3 rounded-[10px] bg-muted p-3">
+                <div className="grid gap-1.5">
+                  {Object.entries(parsedHeaders).map(([key, value]) => (
+                    <div className="flex gap-2 font-mono text-xs" key={key}>
+                      <span className="shrink-0 text-muted-foreground">
+                        {key}:
+                      </span>
+                      <span className="break-all">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="deliveries">
+              <div className="mt-3">
+                <DeliveriesPanel
+                  deliveries={mergedDeliveries}
+                  isLoading={deliveriesQuery.isLoading}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </ScrollArea>
     </div>
   );
 }
 
-function EventDetailHeader({ event }: { event: WebhookEvent }) {
-  return (
-    <div className="flex items-center gap-3">
-      <Badge
-        className={METHOD_COLORS[event.method] ?? "text-foreground"}
-        variant="outline"
-      >
-        {event.method}
-      </Badge>
-      <span className="font-mono text-[11px] text-muted-foreground">
-        {event.id}
-      </span>
-      <span className="text-[10px] text-muted-foreground">
-        {formatTimeFull(event.createdAt)}
-      </span>
-    </div>
-  );
-}
+/* ──── Deliveries Panel ──── */
 
-function EventMetadata({ event }: { event: WebhookEvent }) {
-  return (
-    <div className="flex gap-4 text-xs">
-      {event.contentType ? (
-        <div>
-          <span className="text-muted-foreground">Content-Type: </span>
-          <span className="font-mono">{event.contentType}</span>
-        </div>
-      ) : null}
-      {event.sourceIp ? (
-        <div>
-          <span className="text-muted-foreground">Source IP: </span>
-          <span className="font-mono">{event.sourceIp}</span>
-        </div>
-      ) : null}
-      {event.query ? (
-        <div>
-          <span className="text-muted-foreground">Query: </span>
-          <span className="font-mono">{event.query}</span>
-        </div>
-      ) : null}
-    </div>
-  );
-}
+const deliveryStatusVariant: Record<
+  string,
+  "success" | "destructive" | "warning"
+> = {
+  delivered: "success",
+  failed: "destructive",
+};
 
-/* ──── Deliveries Tab ──── */
-
-function DeliveriesTab({
+function DeliveriesPanel({
   deliveries,
   isLoading,
 }: {
   deliveries: DeliveryResult[];
   isLoading: boolean;
 }) {
-  const [selectedDelivery, setSelectedDelivery] =
-    useState<DeliveryResult | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -1002,75 +991,56 @@ function DeliveriesTab({
 
   if (deliveries.length === 0) {
     return (
-      <Card className="mt-2" size="sm">
-        <CardContent>
-          <p className="py-4 text-center text-muted-foreground text-xs">
-            No deliveries yet. Connect a machine to receive webhook deliveries.
-          </p>
-        </CardContent>
-      </Card>
+      <p className="py-4 text-center text-[13px] text-muted-foreground">
+        No deliveries yet. Connect a machine to receive webhooks.
+      </p>
     );
   }
 
   return (
-    <div className="mt-2 grid gap-2">
-      <div className="grid gap-1">
-        {deliveries.map((d) => (
-          <button
-            className={`flex items-center gap-3 rounded px-3 py-2 text-left text-xs transition-colors ${
-              selectedDelivery?.deliveryId === d.deliveryId
-                ? "bg-muted"
-                : "hover:bg-muted/50"
-            }`}
-            key={d.deliveryId}
-            onClick={() =>
-              setSelectedDelivery(
-                selectedDelivery?.deliveryId === d.deliveryId ? null : d
-              )
-            }
-            type="button"
-          >
-            <StatusDot status={d.status} />
-            <span className="font-medium">{d.machineName}</span>
-            <span
-              className={`font-mono text-[11px] ${STATUS_COLORS[d.status]}`}
+    <div className="grid gap-2">
+      {deliveries.map((d) => {
+        const isExpanded = expandedId === d.deliveryId;
+        return (
+          <div key={d.deliveryId}>
+            <button
+              className={cn(
+                "flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13px] transition-colors duration-120",
+                isExpanded ? "bg-muted" : "hover:bg-muted/50"
+              )}
+              onClick={() => setExpandedId(isExpanded ? null : d.deliveryId)}
+              type="button"
             >
-              {d.status}
-            </span>
-            {d.responseStatus ? (
-              <Badge className="text-[10px]" variant="outline">
-                {d.responseStatus}
+              <DeliveryStatusDot status={d.status} />
+              <span className="font-medium">{d.machineName}</span>
+              <Badge variant={deliveryStatusVariant[d.status] ?? "warning"}>
+                {d.status}
               </Badge>
-            ) : null}
-            {d.duration !== null ? (
-              <span className="text-[10px] text-muted-foreground">
-                {d.duration}ms
+              {d.responseStatus ? (
+                <span className="font-mono text-muted-foreground text-xs">
+                  {d.responseStatus}
+                </span>
+              ) : null}
+              {d.duration !== null ? (
+                <span className="text-muted-foreground text-xs">
+                  {d.duration}ms
+                </span>
+              ) : null}
+              <span className="flex-1" />
+              <span className="font-mono text-[11px] text-muted-foreground">
+                {d.deliveryId.slice(0, 8)}
               </span>
-            ) : null}
-            <span className="flex-1" />
-            <span className="font-mono text-[10px] text-muted-foreground">
-              {d.deliveryId.slice(0, 8)}
-            </span>
-          </button>
-        ))}
-      </div>
+            </button>
 
-      {selectedDelivery ? <DeliveryDetail delivery={selectedDelivery} /> : null}
+            {isExpanded ? <DeliveryExpandedDetail delivery={d} /> : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-function StatusDot({ status }: { status: string }) {
-  let color = "bg-yellow-400";
-  if (status === "delivered") {
-    color = "bg-green-400";
-  } else if (status === "failed") {
-    color = "bg-red-400";
-  }
-  return <span className={`inline-block size-2 rounded-full ${color}`} />;
-}
-
-function DeliveryDetail({ delivery }: { delivery: DeliveryResult }) {
+function DeliveryExpandedDetail({ delivery }: { delivery: DeliveryResult }) {
   let formattedBody = delivery.responseBody ?? "";
   try {
     if (formattedBody) {
@@ -1081,55 +1051,24 @@ function DeliveryDetail({ delivery }: { delivery: DeliveryResult }) {
   }
 
   return (
-    <Card size="sm">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-xs">
-          Delivery to {delivery.machineName}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-2 text-xs">
-          <div className="flex gap-4">
-            <div>
-              <span className="text-muted-foreground">Status: </span>
-              <span className={`font-medium ${STATUS_COLORS[delivery.status]}`}>
-                {delivery.status}
-              </span>
-            </div>
-            {delivery.responseStatus ? (
-              <div>
-                <span className="text-muted-foreground">HTTP: </span>
-                <span className="font-mono">{delivery.responseStatus}</span>
-              </div>
-            ) : null}
-            {delivery.duration !== null ? (
-              <div>
-                <span className="text-muted-foreground">Duration: </span>
-                <span className="font-mono">{delivery.duration}ms</span>
-              </div>
-            ) : null}
-          </div>
-
-          {delivery.error ? (
-            <div>
-              <span className="text-muted-foreground">Error: </span>
-              <span className="text-red-400">{delivery.error}</span>
-            </div>
-          ) : null}
-
-          {formattedBody ? (
-            <div>
-              <span className="mb-1 block text-muted-foreground">
-                Response Body:
-              </span>
-              <pre className="overflow-x-auto rounded bg-muted p-2 font-mono text-[11px]">
-                {formattedBody}
-              </pre>
-            </div>
-          ) : null}
+    <div className="mt-1 ml-5 grid gap-2 border-border border-l-2 pl-4 text-[13px]">
+      {delivery.error ? (
+        <div>
+          <span className="text-muted-foreground">Error: </span>
+          <span className="text-destructive">{delivery.error}</span>
         </div>
-      </CardContent>
-    </Card>
+      ) : null}
+      {formattedBody ? (
+        <div>
+          <span className="mb-1 block text-muted-foreground">
+            Response body
+          </span>
+          <pre className="overflow-x-auto rounded-[10px] bg-muted p-2 font-mono text-xs">
+            {formattedBody}
+          </pre>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -1188,7 +1127,7 @@ function EditEndpointDialog({
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Endpoint</DialogTitle>
+          <DialogTitle>Edit hook</DialogTitle>
           <DialogDescription>
             Update your endpoint configuration.
           </DialogDescription>
@@ -1230,7 +1169,7 @@ function EditEndpointDialog({
           <div className="flex items-center gap-2">
             <input
               checked={enabled}
-              className="accent-primary"
+              className="accent-cyan"
               id="edit-enabled"
               onChange={(e) => setEnabled(e.target.checked)}
               type="checkbox"
@@ -1240,13 +1179,12 @@ function EditEndpointDialog({
           <DialogFooter>
             <Button
               disabled={!name.trim() || updateMutation.isPending}
-              size="sm"
               type="submit"
             >
               {updateMutation.isPending ? (
                 <Loader2 className="animate-spin" data-icon="inline-start" />
               ) : null}
-              Save
+              Save changes
             </Button>
           </DialogFooter>
         </form>
@@ -1255,7 +1193,7 @@ function EditEndpointDialog({
   );
 }
 
-/* ──────────────────────── Main component ──────────────────────── */
+/* ──────────────────────── Main Component ──────────────────────── */
 
 function EndpointDetail() {
   const { endpointId } = Route.useParams();
@@ -1281,7 +1219,6 @@ function EndpointDetail() {
 
   const ep = endpointQuery.data;
 
-  // Primary: WebSocket viewer connection for real-time data
   const {
     connected: wsConnected,
     events: wsEvents,
@@ -1292,10 +1229,8 @@ function EndpointDetail() {
     clearEvents: clearWsEvents,
   } = useViewerWebSocket(ep?.slug, endpointId);
 
-  // Fallback: SSE for events when WebSocket isn't available (also captures events not sent to viewers)
   const { events: sseEvents, connected: sseConnected } = useSSEEvents(ep?.slug);
 
-  // Merge all event sources
   const historicalEvents = eventsQuery.data?.items ?? [];
   const allLiveEvents = useMemo(() => {
     const seen = new Set<string>();
@@ -1355,7 +1290,7 @@ function EndpointDetail() {
 
   if (endpointQuery.isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex flex-1 items-center justify-center">
         <Loader2 className="size-5 animate-spin text-muted-foreground" />
       </div>
     );
@@ -1363,10 +1298,13 @@ function EndpointDetail() {
 
   if (!ep) {
     return (
-      <div className="mx-auto max-w-5xl p-4">
-        <p className="text-muted-foreground">Endpoint not found.</p>
-        <Link className="mt-2 text-primary text-xs underline" to="/dashboard">
-          Back to dashboard
+      <div className="flex flex-1 flex-col items-center justify-center gap-2">
+        <p className="text-[13px] text-muted-foreground">Endpoint not found.</p>
+        <Link
+          className="text-[13px] text-cyan underline underline-offset-4"
+          to="/dashboard"
+        >
+          Back to hooks
         </Link>
       </div>
     );
@@ -1375,19 +1313,19 @@ function EndpointDetail() {
   const webhookUrl = `${env.VITE_SERVER_URL}/hooks/${ep.slug}`;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-7xl flex-col p-4">
-      <EndpointHeader
-        description={ep.description}
-        enabled={ep.enabled}
+    <div className="flex h-full flex-col overflow-hidden">
+      {/* Page header */}
+      <EndpointPageHeader
+        connected={connected}
         name={ep.name}
         onDelete={() => deleteMutation.mutate()}
         onEdit={() => setEditOpen(true)}
-        wsConnected={connected}
+        slug={ep.slug}
+        webhookUrl={webhookUrl}
       />
 
-      <WebhookUrlCard webhookUrl={webhookUrl} />
-
-      <MachinesPanel
+      {/* Route lines */}
+      <RouteLines
         connectedMachines={wsMachines}
         endpointId={endpointId}
         isLoading={machinesQuery.isLoading}
@@ -1400,8 +1338,9 @@ function EndpointDetail() {
         }))}
       />
 
-      <div className="flex min-h-0 flex-1 gap-4">
-        <EventsList
+      {/* Content: events table + inspector drawer */}
+      <div className="flex min-h-0 flex-1">
+        <EventsTable
           deliveries={wsDeliveries}
           events={mergedEvents}
           onClearEvents={() => clearEventsMutation.mutate()}
@@ -1411,23 +1350,17 @@ function EndpointDetail() {
           selectedEventId={selectedEventId}
         />
 
-        <Separator orientation="vertical" />
-
-        <div className="flex min-w-0 flex-1 flex-col">
-          {selectedEvent ? (
-            <EventDetail
-              event={selectedEvent}
-              eventId={selectedEvent.id}
-              liveDeliveries={wsDeliveries.get(selectedEvent.id) ?? []}
-            />
-          ) : (
-            <div className="flex flex-1 items-center justify-center text-muted-foreground text-xs">
-              Select an event to view details
-            </div>
-          )}
-        </div>
+        {/* Inspector drawer */}
+        {selectedEvent ? (
+          <InspectorDrawer
+            event={selectedEvent}
+            liveDeliveries={wsDeliveries.get(selectedEvent.id) ?? []}
+            onClose={() => setSelectedEventId(null)}
+          />
+        ) : null}
       </div>
 
+      {/* Edit dialog */}
       {editOpen ? (
         <EditEndpointDialog
           endpoint={ep as EndpointData}

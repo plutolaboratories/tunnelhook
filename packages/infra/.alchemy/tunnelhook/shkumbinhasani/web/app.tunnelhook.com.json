@@ -1,0 +1,32 @@
+{
+  "kind": "cloudflare::CustomDomain",
+  "id": "app.tunnelhook.com",
+  "fqn": "tunnelhook/shkumbinhasani/web/app.tunnelhook.com",
+  "seq": 0,
+  "data": {},
+  "status": "created",
+  "output": {
+    "Symbol(alchemy::ResourceKind)": "cloudflare::CustomDomain",
+    "Symbol(alchemy::ResourceID)": "app.tunnelhook.com",
+    "Symbol(alchemy::ResourceFQN)": "tunnelhook/shkumbinhasani/web/app.tunnelhook.com",
+    "Symbol(alchemy::ResourceScope)": {
+      "@scope": null
+    },
+    "Symbol(alchemy::ResourceSeq)": 0,
+    "name": "app.tunnelhook.com",
+    "zoneId": "noop-zone",
+    "adopt": false,
+    "workerName": "tunnelhook-web-shkumbinhasani",
+    "dev": true,
+    "id": "noop-domain",
+    "environment": "production",
+    "createdAt": 1771612349757,
+    "updatedAt": 1771612349757
+  },
+  "props": {
+    "name": "app.tunnelhook.com",
+    "adopt": false,
+    "workerName": "tunnelhook-web-shkumbinhasani",
+    "dev": true
+  }
+}

@@ -2,7 +2,7 @@
   "kind": "cloudflare::Worker",
   "id": "web",
   "fqn": "tunnelhook/shkumbinhasani/web",
-  "seq": 2,
+  "seq": 1,
   "data": {},
   "status": "updated",
   "output": {
@@ -12,14 +12,11 @@
     "Symbol(alchemy::ResourceScope)": {
       "@scope": null
     },
-    "Symbol(alchemy::ResourceSeq)": 2,
+    "Symbol(alchemy::ResourceSeq)": 1,
     "cwd": "../../apps/web",
+    "domains": [],
     "bindings": {
-      "VITE_SERVER_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",
-      "ASSETS": {
-        "type": "assets",
-        "path": "../../apps/web/dist"
-      }
+      "VITE_SERVER_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev"
     },
     "name": "tunnelhook-web-shkumbinhasani",
     "compatibilityFlags": [],
@@ -38,19 +35,17 @@
     "id": "web",
     "format": "esm",
     "createdAt": 1771552309356,
-    "updatedAt": {
-      "@date": "2026-02-20T17:35:40.760Z"
-    },
-    "url": "https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev"
+    "updatedAt": 1771612349758,
+    "url": "http://localhost:3001/",
+    "routes": []
   },
   "props": {
     "cwd": "../../apps/web",
+    "domains": [
+      "app.tunnelhook.com"
+    ],
     "bindings": {
-      "VITE_SERVER_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",
-      "ASSETS": {
-        "type": "assets",
-        "path": "../../apps/web/dist"
-      }
+      "VITE_SERVER_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev"
     },
     "name": "tunnelhook-web-shkumbinhasani",
     "compatibilityFlags": [],
@@ -61,6 +56,9 @@
       "run_worker_first": false,
       "directory": "dist"
     },
-    "entrypoint": ".alchemy/local/worker.js"
+    "entrypoint": ".alchemy/local/worker.js",
+    "dev": {
+      "url": "http://localhost:3001/"
+    }
   }
 }

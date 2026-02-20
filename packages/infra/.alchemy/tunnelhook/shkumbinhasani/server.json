@@ -2,7 +2,7 @@
   "kind": "cloudflare::Worker",
   "id": "server",
   "fqn": "tunnelhook/shkumbinhasani/server",
-  "seq": 3,
+  "seq": 2,
   "data": {},
   "status": "updated",
   "output": {
@@ -12,10 +12,11 @@
     "Symbol(alchemy::ResourceScope)": {
       "@scope": null
     },
-    "Symbol(alchemy::ResourceSeq)": 3,
+    "Symbol(alchemy::ResourceSeq)": 2,
     "cwd": "../../apps/server",
     "entrypoint": "src/index.ts",
     "compatibility": "node",
+    "domains": [],
     "bindings": {
       "DB": {
         "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
@@ -28,22 +29,22 @@
         "type": "d1",
         "id": "db42f0af-cf09-4f88-a9fc-34677bf6ce01",
         "name": "tunnelhook-database-shkumbinhasani",
+        "migrationsDir": "../../packages/db/src/migrations",
+        "migrationsTable": "d1_migrations",
         "dev": {
           "id": "tunnelhook-database-shkumbinhasani",
           "remote": false
         },
-        "migrationsDir": "../../packages/db/src/migrations",
-        "migrationsTable": "d1_migrations",
         "jurisdiction": "default"
       },
       "CORS_ORIGIN": "https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev",
       "BETTER_AUTH_SECRET": {
         "@secret": {
           "version": "v1",
-          "ciphertext": "GXj7yvPOYkM2OjMr1a/wWsMejcnWtX5d/S6lop5fewA=",
-          "iv": "NDQ6Nl93n2icjarJ",
-          "salt": "vfRVKfUhwTXk5PkxOpBe3Q==",
-          "tag": "QdUxnAAeCu/5t1P1FdguGg=="
+          "ciphertext": "k4cGN0uWpWUvsJ9OobAPz3u8ME2PmKy+/2hH9oDJnVs=",
+          "iv": "tK7DkRxfhWk+/bul",
+          "salt": "uXEcl4GE5Z0tG0HvaBvJfQ==",
+          "tag": "lwaSkFBL+jf0DOUFpFTMwQ=="
         }
       },
       "BETTER_AUTH_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",
@@ -67,15 +68,17 @@
     ],
     "format": "esm",
     "createdAt": 1771552310042,
-    "updatedAt": {
-      "@date": "2026-02-20T17:35:48.410Z"
-    },
-    "url": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev"
+    "updatedAt": 1771612350363,
+    "url": "http://localhost:3002/",
+    "routes": []
   },
   "props": {
     "cwd": "../../apps/server",
     "entrypoint": "src/index.ts",
     "compatibility": "node",
+    "domains": [
+      "api.tunnelhook.com"
+    ],
     "bindings": {
       "DB": {
         "Symbol(alchemy::ResourceKind)": "cloudflare::D1Database",
@@ -88,22 +91,22 @@
         "type": "d1",
         "id": "db42f0af-cf09-4f88-a9fc-34677bf6ce01",
         "name": "tunnelhook-database-shkumbinhasani",
+        "migrationsDir": "../../packages/db/src/migrations",
+        "migrationsTable": "d1_migrations",
         "dev": {
           "id": "tunnelhook-database-shkumbinhasani",
           "remote": false
         },
-        "migrationsDir": "../../packages/db/src/migrations",
-        "migrationsTable": "d1_migrations",
         "jurisdiction": "default"
       },
       "CORS_ORIGIN": "https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev",
       "BETTER_AUTH_SECRET": {
         "@secret": {
           "version": "v1",
-          "ciphertext": "k1vfP69FsPhukSUpQLrnujGLkcTgqSycaeFPWRRQijo=",
-          "iv": "ZViDmz4m+5GsAXdG",
-          "salt": "PySPn0sodS83byInx8Kmcw==",
-          "tag": "lKJqpJg8jmr0l8KbLTeQwA=="
+          "ciphertext": "UCIfVD+05vj3B5mhq71ucTa6OKxqFd/GwfuHbOoLB6M=",
+          "iv": "B2Uvg42+4WJX9607",
+          "salt": "pDwc4Sf35wJQiQKB6UDZNw==",
+          "tag": "LG6RueulegoIJn4crvBweg=="
         }
       },
       "BETTER_AUTH_URL": "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev",

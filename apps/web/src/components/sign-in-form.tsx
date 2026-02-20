@@ -1,11 +1,11 @@
 import { useForm } from "@tanstack/react-form";
 import { useNavigate } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import z from "zod";
 
 import { authClient } from "@/lib/auth-client";
 
-import Loader from "./loader";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -18,7 +18,6 @@ export default function SignInForm({
   const navigate = useNavigate({
     from: "/",
   });
-  const { isPending } = authClient.useSession();
 
   const form = useForm({
     defaultValues: {
@@ -36,7 +35,7 @@ export default function SignInForm({
             navigate({
               to: "/dashboard",
             });
-            toast.success("Sign in successful");
+            toast.success("Signed in");
           },
           onError: (error) => {
             toast.error(error.error.message || error.error.statusText);
@@ -52,90 +51,87 @@ export default function SignInForm({
     },
   });
 
-  if (isPending) {
-    return <Loader />;
-  }
-
   return (
-    <div className="mx-auto mt-10 w-full max-w-md p-6">
-      <h1 className="mb-6 text-center font-bold text-3xl">Welcome Back</h1>
+    <form
+      className="grid gap-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        form.handleSubmit();
+      }}
+    >
+      <form.Field name="email">
+        {(field) => (
+          <div className="grid gap-1.5">
+            <Label htmlFor={field.name}>Email</Label>
+            <Input
+              id={field.name}
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+              placeholder="you@example.com"
+              type="email"
+              value={field.state.value}
+            />
+            {field.state.meta.errors.map((error) => (
+              <p className="text-destructive text-xs" key={error?.message}>
+                {error?.message}
+              </p>
+            ))}
+          </div>
+        )}
+      </form.Field>
 
-      <form
-        className="space-y-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          form.handleSubmit();
-        }}
-      >
-        <div>
-          <form.Field name="email">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Email</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  type="email"
-                  value={field.state.value}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
+      <form.Field name="password">
+        {(field) => (
+          <div className="grid gap-1.5">
+            <Label htmlFor={field.name}>Password</Label>
+            <Input
+              id={field.name}
+              name={field.name}
+              onBlur={field.handleBlur}
+              onChange={(e) => field.handleChange(e.target.value)}
+              placeholder="At least 8 characters"
+              type="password"
+              value={field.state.value}
+            />
+            {field.state.meta.errors.map((error) => (
+              <p className="text-destructive text-xs" key={error?.message}>
+                {error?.message}
+              </p>
+            ))}
+          </div>
+        )}
+      </form.Field>
 
-        <div>
-          <form.Field name="password">
-            {(field) => (
-              <div className="space-y-2">
-                <Label htmlFor={field.name}>Password</Label>
-                <Input
-                  id={field.name}
-                  name={field.name}
-                  onBlur={field.handleBlur}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                  type="password"
-                  value={field.state.value}
-                />
-                {field.state.meta.errors.map((error) => (
-                  <p className="text-red-500" key={error?.message}>
-                    {error?.message}
-                  </p>
-                ))}
-              </div>
-            )}
-          </form.Field>
-        </div>
+      <form.Subscribe>
+        {(state) => (
+          <Button
+            className="w-full"
+            disabled={!state.canSubmit || state.isSubmitting}
+            type="submit"
+          >
+            {state.isSubmitting ? (
+              <Loader2
+                className="size-4 animate-spin"
+                data-icon="inline-start"
+              />
+            ) : null}
+            Sign in
+          </Button>
+        )}
+      </form.Subscribe>
 
-        <form.Subscribe>
-          {(state) => (
-            <Button
-              className="w-full"
-              disabled={!state.canSubmit || state.isSubmitting}
-              type="submit"
-            >
-              {state.isSubmitting ? "Submitting..." : "Sign In"}
-            </Button>
-          )}
-        </form.Subscribe>
-      </form>
-
-      <div className="mt-4 text-center">
-        <Button
-          className="text-indigo-600 hover:text-indigo-800"
+      <p className="text-center text-[13px] text-muted-foreground">
+        No account?{" "}
+        <button
+          className="font-medium text-foreground underline underline-offset-4 hover:text-cyan"
           onClick={onSwitchToSignUp}
-          variant="link"
+          type="button"
         >
-          Need an account? Sign Up
-        </Button>
-      </div>
-    </div>
+          Sign up
+        </button>
+      </p>
+    </form>
   );
 }
