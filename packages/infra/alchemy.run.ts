@@ -5,13 +5,18 @@ import {
   Vite,
   Worker,
 } from "alchemy/cloudflare";
+import { CloudflareStateStore } from "alchemy/state";
 import { config } from "dotenv";
 
 config({ path: "./.env" });
 config({ path: "../../apps/web/.env" });
 config({ path: "../../apps/server/.env" });
 
-const app = await alchemy("tunnelhook");
+const app = await alchemy("tunnelhook", {
+  stateStore: process.env.CI
+    ? (scope) => new CloudflareStateStore(scope)
+    : undefined,
+});
 
 const db = await D1Database("database", {
   migrationsDir: "../../packages/db/src/migrations",
