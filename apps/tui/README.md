@@ -39,7 +39,7 @@ This will:
 
 Your webhook URL will be:
 ```
-https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev/hooks/stripe-dev
+https://api.tunnelhook.com/hooks/stripe-dev
 ```
 
 ### Interactive mode

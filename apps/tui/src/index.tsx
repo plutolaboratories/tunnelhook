@@ -19,8 +19,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 // ---------------------------------------------------------------------------
 
 const SERVER_URL =
-  process.env.TUNNELHOOK_SERVER_URL ??
-  "https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev";
+  process.env.TUNNELHOOK_SERVER_URL ?? "https://api.tunnelhook.com";
 const WS_URL = SERVER_URL.replace(/^http/, "ws");
 
 // ---------------------------------------------------------------------------

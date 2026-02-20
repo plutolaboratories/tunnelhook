@@ -42,6 +42,6 @@ jobs:
           ALCHEMY_STATE_TOKEN: ${{ secrets.ALCHEMY_STATE_TOKEN }}
           ALCHEMY_CI_STATE_STORE_CHECK: "false"
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
-          BETTER_AUTH_URL: https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev
-          CORS_ORIGIN: https://tunnelhook-web-shkumbinhasani.shkumbinhasani20001439.workers.dev
-          VITE_SERVER_URL: https://tunnelhook-server-shkumbinhasani.shkumbinhasani20001439.workers.dev
+          BETTER_AUTH_URL: https://api.tunnelhook.com
+          CORS_ORIGIN: https://app.tunnelhook.com
+          VITE_SERVER_URL: https://api.tunnelhook.com
