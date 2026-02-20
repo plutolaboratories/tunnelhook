@@ -24,7 +24,17 @@
       "cache": false
     },
     "deploy": {
-      "cache": false
+      "cache": false,
+      "passThroughEnv": [
+        "CLOUDFLARE_API_TOKEN",
+        "ALCHEMY_PASSWORD",
+        "ALCHEMY_STATE_TOKEN",
+        "BETTER_AUTH_SECRET",
+        "BETTER_AUTH_URL",
+        "CORS_ORIGIN",
+        "VITE_SERVER_URL",
+        "CI"
+      ]
     },
     "destroy": {
       "cache": false
