@@ -1,5 +1,6 @@
 {
   "name": "@tunnelhook/api",
+  "private": true,
   "type": "module",
   "exports": {
     ".": {

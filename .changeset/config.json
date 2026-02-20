@@ -10,14 +10,5 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": [
-    "server",
-    "web",
-    "@tunnelhook/api",
-    "@tunnelhook/auth",
-    "@tunnelhook/config",
-    "@tunnelhook/db",
-    "@tunnelhook/env",
-    "@tunnelhook/infra"
-  ]
+  "privatePackages": false
 }

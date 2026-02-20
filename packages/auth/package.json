@@ -1,5 +1,6 @@
 {
   "name": "@tunnelhook/auth",
+  "private": true,
   "type": "module",
   "exports": {
     ".": {
