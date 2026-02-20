@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { LogOut, Monitor, Webhook } from "lucide-react";
+import { LogOut, Monitor, ScrollText, Webhook } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +48,12 @@ const NAV_ITEMS: NavItem[] = [
     icon: Monitor,
     exact: false,
     disabled: true,
+  },
+  {
+    to: "/dashboard/changelog",
+    label: "Changelog",
+    icon: ScrollText,
+    exact: false,
   },
 ];
 

@@ -13,6 +13,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardChangelogRouteImport } from './routes/dashboard.changelog'
 import { Route as DashboardEndpointsEndpointIdRouteImport } from './routes/dashboard.endpoints.$endpointId'
 
 const LoginRoute = LoginRouteImport.update({
@@ -35,6 +36,11 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardChangelogRoute = DashboardChangelogRouteImport.update({
+  id: '/changelog',
+  path: '/changelog',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardEndpointsEndpointIdRoute =
   DashboardEndpointsEndpointIdRouteImport.update({
     id: '/endpoints/$endpointId',
@@ -47,12 +53,14 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/changelog': typeof DashboardChangelogRoute
   '/dashboard/endpoints/$endpointId': typeof DashboardEndpointsEndpointIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/changelog': typeof DashboardChangelogRoute
   '/dashboard/endpoints/$endpointId': typeof DashboardEndpointsEndpointIdRoute
 }
 export interface FileRoutesById {
@@ -61,6 +69,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/changelog': typeof DashboardChangelogRoute
   '/dashboard/endpoints/$endpointId': typeof DashboardEndpointsEndpointIdRoute
 }
 export interface FileRouteTypes {
@@ -70,15 +79,17 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/dashboard/'
+    | '/dashboard/changelog'
     | '/dashboard/endpoints/$endpointId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/dashboard' | '/dashboard/endpoints/$endpointId'
+  to: '/' | '/login' | '/dashboard' | '/dashboard/changelog' | '/dashboard/endpoints/$endpointId'
   id:
     | '__root__'
     | '/'
     | '/dashboard'
     | '/login'
     | '/dashboard/'
+    | '/dashboard/changelog'
     | '/dashboard/endpoints/$endpointId'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +129,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/changelog': {
+      id: '/dashboard/changelog'
+      path: '/changelog'
+      fullPath: '/dashboard/changelog'
+      preLoaderRoute: typeof DashboardChangelogRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/endpoints/$endpointId': {
       id: '/dashboard/endpoints/$endpointId'
       path: '/endpoints/$endpointId'
@@ -130,11 +148,13 @@ declare module '@tanstack/react-router' {
 
 interface DashboardRouteChildren {
   DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardChangelogRoute: typeof DashboardChangelogRoute
   DashboardEndpointsEndpointIdRoute: typeof DashboardEndpointsEndpointIdRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardIndexRoute: DashboardIndexRoute,
+  DashboardChangelogRoute: DashboardChangelogRoute,
   DashboardEndpointsEndpointIdRoute: DashboardEndpointsEndpointIdRoute,
 }
 
