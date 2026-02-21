@@ -34,6 +34,42 @@ jobs:
         run: bun x ultracite check
         continue-on-error: true
 
+      - name: Run E2E integration tests
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
+          ALCHEMY_STATE_TOKEN: ${{ secrets.ALCHEMY_STATE_TOKEN }}
+          ALCHEMY_CI_STATE_STORE_CHECK: "false"
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          BETTER_AUTH_URL: http://localhost:3002
+          CORS_ORIGIN: http://localhost:3001
+          VITE_SERVER_URL: http://localhost:3002
+        run: |
+          bun run --filter @tunnelhook/infra dev > /tmp/tunnelhook-e2e-dev.log 2>&1 &
+
+          for i in {1..120}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3002/ || true)
+            if [ "$STATUS" = "200" ]; then
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$STATUS" != "200" ]; then
+            cat /tmp/tunnelhook-e2e-dev.log
+            exit 1
+          fi
+
+          bun run test:e2e
+
+      - name: Stop local E2E server
+        if: always()
+        run: |
+          PID=$(lsof -ti :3002 || true)
+          if [ -n "$PID" ]; then
+            kill $PID
+          fi
+
       - name: Deploy to Cloudflare
         run: bun run deploy
         env:

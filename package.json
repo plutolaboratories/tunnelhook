@@ -34,6 +34,7 @@
     "dev:server": "turbo -F server dev",
     "db:push": "turbo -F @tunnelhook/db db:push",
     "db:generate": "turbo -F @tunnelhook/db db:generate",
+    "test:e2e": "bun run apps/server/tests/e2e.integration.ts",
     "deploy": "turbo -F @tunnelhook/infra deploy",
     "destroy": "turbo -F @tunnelhook/infra destroy",
     "check": "ultracite check",
