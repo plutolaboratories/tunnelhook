@@ -60,7 +60,10 @@ jobs:
             exit 1
           fi
 
-          bun run test:e2e
+          if ! bun run test:e2e; then
+            cat /tmp/tunnelhook-e2e-dev.log
+            exit 1
+          fi
 
       - name: Stop local E2E server
         if: always()
