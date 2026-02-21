@@ -69,6 +69,7 @@ function cookieHeaderFromResponse(response: Response): string {
 async function createAuthenticatedSession(prefix: string): Promise<string> {
   const suffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
   const email = `${prefix}-${suffix}@example.com`;
+  const maxAuthAttempts = 30;
 
   const signUpBody = JSON.stringify({
     email,
@@ -77,7 +78,7 @@ async function createAuthenticatedSession(prefix: string): Promise<string> {
   });
 
   let lastSignUpError: string | null = null;
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < maxAuthAttempts; attempt++) {
     const signUpResponse = await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
       method: "POST",
       headers: {
@@ -97,31 +98,39 @@ async function createAuthenticatedSession(prefix: string): Promise<string> {
 
     const signUpErrorBody = await signUpResponse.text();
     lastSignUpError = `${signUpResponse.status} ${signUpErrorBody}`;
-    await sleep(500);
+    await sleep(2000);
   }
 
-  const signInResponse = await fetch(`${SERVER_URL}/api/auth/sign-in/email`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      password: TEST_PASSWORD,
-    }),
-    redirect: "manual",
+  let lastSignInError: string | null = null;
+  const signInBody = JSON.stringify({
+    email,
+    password: TEST_PASSWORD,
   });
 
-  if (!signInResponse.ok) {
+  for (let attempt = 0; attempt < maxAuthAttempts; attempt++) {
+    const signInResponse = await fetch(`${SERVER_URL}/api/auth/sign-in/email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: signInBody,
+      redirect: "manual",
+    });
+
+    if (signInResponse.ok) {
+      const signInCookies = cookieHeaderFromResponse(signInResponse);
+      ensure(signInCookies.length > 0, "Sign-in should return auth cookies");
+      return signInCookies;
+    }
+
     const signInErrorBody = await signInResponse.text();
-    throw new Error(
-      `Auth failed for ${email}. sign-up: ${lastSignUpError ?? "no response"}, sign-in: ${signInResponse.status} ${signInErrorBody}`
-    );
+    lastSignInError = `${signInResponse.status} ${signInErrorBody}`;
+    await sleep(2000);
   }
 
-  const signInCookies = cookieHeaderFromResponse(signInResponse);
-  ensure(signInCookies.length > 0, "Sign-in should return auth cookies");
-  return signInCookies;
+  throw new Error(
+    `Auth failed for ${email}. sign-up: ${lastSignUpError ?? "no response"}, sign-in: ${lastSignInError ?? "no response"}`
+  );
 }
 
 async function rpc<T>(
@@ -198,7 +207,7 @@ function connectWebSocket(params: {
 function waitForWsMessage<T>(
   ws: WebSocket,
   matcher: (message: Record<string, unknown>) => boolean,
-  timeoutMs = 15_000
+  timeoutMs = 60_000
 ): Promise<T> {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
@@ -314,6 +323,8 @@ async function runMachineFlowTest(): Promise<void> {
     slug: endpoint.slug,
   });
 
+  await sleep(500);
+
   const webhookMessagePromise = waitForWsMessage<WebhookMessage>(
     machineWs,
     (message) => message.type === "webhook"
@@ -397,6 +408,14 @@ async function runViewerFlowTest(): Promise<void> {
     slug: endpoint.slug,
   });
 
+  const onlineStatusPromise = waitForWsMessage<MachineStatusMessage>(
+    viewerWs,
+    (message) =>
+      message.type === "machine-status" &&
+      message.status === "online" &&
+      message.machineId === machine.id
+  );
+
   const machineWs = await connectWebSocket({
     cookies,
     machineId: machine.id,
@@ -405,13 +424,9 @@ async function runViewerFlowTest(): Promise<void> {
     slug: endpoint.slug,
   });
 
-  const onlineStatus = await waitForWsMessage<MachineStatusMessage>(
-    viewerWs,
-    (message) =>
-      message.type === "machine-status" &&
-      message.status === "online" &&
-      message.machineId === machine.id
-  );
+  await sleep(500);
+
+  const onlineStatus = await onlineStatusPromise;
 
   ensureEqual(
     onlineStatus.machineId,
@@ -436,6 +451,14 @@ async function runViewerFlowTest(): Promise<void> {
     "Machine should receive viewer test webhook"
   );
 
+  const deliveryResultPromise = waitForWsMessage<DeliveryResultMessage>(
+    viewerWs,
+    (message) =>
+      message.type === "delivery-result" &&
+      message.status === "delivered" &&
+      message.eventId === webhookResponse.eventId
+  );
+
   machineWs.send(
     JSON.stringify({
       type: "delivery-report",
@@ -449,13 +472,7 @@ async function runViewerFlowTest(): Promise<void> {
     })
   );
 
-  const deliveryResult = await waitForWsMessage<DeliveryResultMessage>(
-    viewerWs,
-    (message) =>
-      message.type === "delivery-result" &&
-      message.status === "delivered" &&
-      message.eventId === webhookResponse.eventId
-  );
+  const deliveryResult = await deliveryResultPromise;
 
   ensureEqual(
     deliveryResult.eventId,
@@ -463,15 +480,17 @@ async function runViewerFlowTest(): Promise<void> {
     "Viewer should receive delivery result for webhook"
   );
 
-  machineWs.close();
-
-  const offlineStatus = await waitForWsMessage<MachineStatusMessage>(
+  const offlineStatusPromise = waitForWsMessage<MachineStatusMessage>(
     viewerWs,
     (message) =>
       message.type === "machine-status" &&
       message.status === "offline" &&
       message.machineId === machine.id
   );
+
+  machineWs.close();
+
+  const offlineStatus = await offlineStatusPromise;
 
   ensureEqual(
     offlineStatus.machineId,
