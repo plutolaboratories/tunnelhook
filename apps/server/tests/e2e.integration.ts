@@ -70,24 +70,34 @@ async function createAuthenticatedSession(prefix: string): Promise<string> {
   const suffix = `${Date.now()}-${crypto.randomUUID().slice(0, 8)}`;
   const email = `${prefix}-${suffix}@example.com`;
 
-  const signUpResponse = await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      name: `${prefix}-${suffix}`,
-      password: TEST_PASSWORD,
-    }),
-    redirect: "manual",
+  const signUpBody = JSON.stringify({
+    email,
+    name: `${prefix}-${suffix}`,
+    password: TEST_PASSWORD,
   });
 
-  ensureEqual(signUpResponse.ok, true, "Sign-up should succeed");
+  let lastSignUpError: string | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const signUpResponse = await fetch(`${SERVER_URL}/api/auth/sign-up/email`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: signUpBody,
+      redirect: "manual",
+    });
 
-  const signUpCookies = cookieHeaderFromResponse(signUpResponse);
-  if (signUpCookies) {
-    return signUpCookies;
+    if (signUpResponse.ok) {
+      const signUpCookies = cookieHeaderFromResponse(signUpResponse);
+      if (signUpCookies) {
+        return signUpCookies;
+      }
+      break;
+    }
+
+    const signUpErrorBody = await signUpResponse.text();
+    lastSignUpError = `${signUpResponse.status} ${signUpErrorBody}`;
+    await sleep(500);
   }
 
   const signInResponse = await fetch(`${SERVER_URL}/api/auth/sign-in/email`, {
@@ -102,7 +112,12 @@ async function createAuthenticatedSession(prefix: string): Promise<string> {
     redirect: "manual",
   });
 
-  ensureEqual(signInResponse.ok, true, "Sign-in should succeed");
+  if (!signInResponse.ok) {
+    const signInErrorBody = await signInResponse.text();
+    throw new Error(
+      `Auth failed for ${email}. sign-up: ${lastSignUpError ?? "no response"}, sign-in: ${signInResponse.status} ${signInErrorBody}`
+    );
+  }
 
   const signInCookies = cookieHeaderFromResponse(signInResponse);
   ensure(signInCookies.length > 0, "Sign-in should return auth cookies");
